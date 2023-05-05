@@ -26,12 +26,25 @@ class Vacancy(Base):
     category = Column(Enum(JobCategory), nullable=False)
 
 
+@pytest.fixture(scope="session")
+def sqlite_file_path(tmp_path_factory):
+    file_path = tmp_path_factory.mktemp("data")
+    yield file_path
+
+
+@pytest.fixture(scope="session")
 def database_url(sqlite_file_path) -> str:
-    return f"sqlite+aiosqlite:///{sqlite_file_path}"
+    return f"sqlite+aiosqlite:///{sqlite_file_path}.db"
 
-engine = create_async_engine(database_url('test.db'), echo=True, future=True)
 
-async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+@pytest.fixture(scope="session")
+def create_engine(database_url):
+    return create_async_engine(database_url, echo=True, future=True)
+
+
+@pytest.fixture(scope="session")
+def create_session(create_engine):
+    return sessionmaker(create_engine, expire_on_commit=False, class_=AsyncSession)
 
 
 @pytest.fixture(scope="session")
@@ -42,18 +55,18 @@ def event_loop():
 
 
 @pytest_asyncio.fixture(autouse=True, scope="function")
-async def db_models():
-    async with engine.begin() as conn:
+async def db_models(create_engine):
+    async with create_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     yield
-    async with engine.begin() as conn:
+    async with create_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture
-async def session() -> AsyncSession:
-    async with async_session() as session:
+async def session(create_session) -> AsyncSession:
+    async with create_session() as session:
         yield session
 
 
