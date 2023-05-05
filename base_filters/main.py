@@ -130,7 +130,6 @@ class FilterCore:
             param = getattr(column, FiltersList[operator].value)(value)
         return param
 
-
     def format_value(self, value, operator, column):
         if operator not in ['between', 'in_']:
             model_serializator = self.create_pydantic_serializator()

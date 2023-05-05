@@ -134,12 +134,12 @@ async def test_qt_with_int(session, get_filter, create_vacancies):
             "salary_from__qt=100",
             HTTP_400_BAD_REQUEST,
             "Forbidden filter 'qt' for 'salary_from'"
-         ),
+        ),
         (
             "id__gt=100",
             HTTP_400_BAD_REQUEST,
             "Forbidden filter field 'id'"
-         ),
+        ),
         (
             "salary_from__eq=",
             HTTP_400_BAD_REQUEST,

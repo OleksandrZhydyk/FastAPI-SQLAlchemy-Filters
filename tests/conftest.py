@@ -77,15 +77,16 @@ async def create_vacancies(session):
         vacancy = Vacancy(
             title=f"title{i}",
             description=f"description{i}",
-            salary_from=50 + i*10,
-            salary_up_to=100 + i*10,
-            created_at=date(2023, 5, 5+i),
-            updated_at=datetime(2023, 1+i, 5, 15, 15, 15),
+            salary_from=50 + i * 10,
+            salary_up_to=100 + i * 10,
+            created_at=date(2023, 5, 5 + i),
+            updated_at=datetime(2023, 1 + i, 5, 15, 15, 15),
             category=JobCategory.miscellaneous
         )
         vacancy_instances.append(vacancy)
     session.add_all(vacancy_instances)
     await session.commit()
+
 
 @pytest.fixture
 def get_custom_restriction():

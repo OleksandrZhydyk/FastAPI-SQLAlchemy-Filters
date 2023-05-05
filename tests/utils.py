@@ -12,6 +12,3 @@ class JobCategory(str, Enum):
     building = "Building"
     services = "Services"
     miscellaneous = "Miscellaneous"
-
-
-
