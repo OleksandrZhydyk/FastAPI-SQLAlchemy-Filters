@@ -60,7 +60,7 @@ async def session() -> AsyncSession:
 @pytest.fixture(scope="function")
 async def create_vacancies(session):
     vacancy_instances = []
-    for i in range(10):
+    for i in range(1, 11):
         vacancy = Vacancy(
             title=f"title{i}",
             description=f"description{i}",
@@ -71,8 +71,8 @@ async def create_vacancies(session):
             category=JobCategory.miscellaneous
         )
         vacancy_instances.append(vacancy)
-    get_session.add_all(vacancy_instances)
-    await get_session.commit()
+    session.add_all(vacancy_instances)
+    await session.commit()
 
 @pytest.fixture
 def get_custom_restriction():

@@ -1,7 +1,7 @@
 import json
-from datetime import datetime
 from enum import Enum
 
+import pydantic
 from fastapi import HTTPException
 from pydantic import create_model
 from pydantic_sqlalchemy import sqlalchemy_to_pydantic
@@ -55,18 +55,25 @@ class FilterCore:
     #             conditions.append(getattr(column, FiltersList[operator].value)(value))
     #     query = select(self.model).filter(and_(*conditions))
     #     return query
-    # @staticmethod
-    # def parser_by_operator(filter):
-    #     dct = {}
-    #     param = ""
-    #     for i in filter:
-    #         if i in ['|', '&']:
-    #             dct[param] = i
-    #             param = ""
-    #         else:
-    #             param += i
-    #     dct[param] = ""
-    #     return dct
+
+    def parser_by_expression(self, expression):
+        try:
+            field_name, condition = expression.split('__')
+            operator, value = condition.split("=")
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect filter request syntax,"
+                       " please use pattern :'field_name__operand=value'"
+            )
+        if not hasattr(self.model, field_name):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"DB model {self.model} doesn't have field '{field_name}'"
+            )
+        else:
+            column = getattr(self.model, field_name)
+        return column, operator, value
 
     def get_or_query(self, filter):
         if not filter:
@@ -77,15 +84,10 @@ class FilterCore:
         for and_block in and_blocks:
             and_condition = []
             for expression in and_block:
-                field_name, condition = expression.split('__')
-                column = getattr(self.model, field_name)
-                operator, value = condition.split("=")
-                self.validate_query_params(field_name, operator)
-
-                serialized_dict = self.model_serializator(**{field_name: value}).dict(exclude_none=True)
-                value = serialized_dict[field_name]
-                print(value)
-                # value = self.format_value(value, operator, column)
+                column, operator, value = self.parser_by_expression(expression)
+                self.validate_query_params(column.name, operator)
+                serialized_dict = self.format_value(value, operator, column)
+                value = serialized_dict[column.name]
                 if isinstance(column.type, DateTime):
                     param = self.get_orm_for_date_field(column, operator, value)
                     and_condition.append(param)
@@ -99,6 +101,11 @@ class FilterCore:
     def create_pydantic_serializator(self):
         pydantic_serializer = sqlalchemy_to_pydantic(self.model)
         optionalized = {f.name: (f.type_, None) for f in pydantic_serializer.__fields__.values()}
+        return create_model(self.model.__name__, **optionalized)
+
+    def create_arr_pydantic_serializator(self):
+        pydantic_serializer = sqlalchemy_to_pydantic(self.model)
+        optionalized = {f.name: (list[f.type_], None) for f in pydantic_serializer.__fields__.values()}
         return create_model(self.model.__name__, **optionalized)
 
     @staticmethod
@@ -125,34 +132,54 @@ class FilterCore:
 
 
     def format_value(self, value, operator, column):
-        if not isinstance(column.type, DateTime) and operator in ['between', 'in_']:
+        if operator not in ['between', 'in_']:
+            model_serializator = self.create_pydantic_serializator()
             try:
-
-                value = json.loads(value.replace("'", '"'))
-            except:
+                serialized_dict = model_serializator(**{column.name: value}).dict(exclude_none=True)
+                return serialized_dict
+            except pydantic.ValidationError as e:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Incorrect filter values '{value}'"
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=json.loads(e.json())
                 )
-        if isinstance(column.type, DateTime):
-            if operator in ['between', 'contains']:
-                serialized_date = json.loads(value.replace("'", '"'))
-                value = [datetime.strptime(date_str, '%Y-%m-%d').date() for date_str in serialized_date]
-            else:
-                value = datetime.strptime(value, '%Y-%m-%d').date()
-        return value
+        else:
+            model_arr_serializator = self.create_arr_pydantic_serializator()
+            value = value.strip('][').split(', ')
+            try:
+                serialized_dict = model_arr_serializator(**{column.name: value}).dict(exclude_none=True)
+                return serialized_dict
+            except pydantic.ValidationError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail=json.loads(e.json())
+                )
+
+        # if not isinstance(column.type, DateTime) and operator in ['between', 'in_']:
+        #     try:
+        #
+        #         value = json.loads(value.replace("'", '"'))
+        #     except:
+        #         raise HTTPException(
+        #             status_code=status.HTTP_400_BAD_REQUEST,
+        #             detail=f"Incorrect filter values '{value}'"
+        #         )
+        # if isinstance(column.type, DateTime):
+        #     if operator in ['between', 'contains']:
+        #         serialized_date = json.loads(value.replace("'", '"'))
+        #         value = [datetime.strptime(date_str, '%Y-%m-%d').date() for date_str in serialized_date]
+        #     else:
+        #         value = datetime.strptime(value, '%Y-%m-%d').date()
+        # return value
 
     def validate_query_params(self, field_name, operator):
         if field_name not in self.allowed_filters:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Forbidden filter field '{field_name}'"
             )
         for allow_filter in self.allowed_filters[field_name]:
             if operator == allow_filter.name:
                 return
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Forbidden filter '{operator}' for '{field_name}'"
         )
 
