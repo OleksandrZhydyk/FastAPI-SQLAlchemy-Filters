@@ -208,6 +208,7 @@ async def test_complex_query(session, get_filter, create_vacancies):
         'category': JobCategory.metallurgy
     }
 
+
 @pytest.mark.parametrize(
     "bad_filter, expected_status_code, expected_detail",
     (
