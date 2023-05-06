@@ -31,4 +31,4 @@ jobs:
             pipenv run pytest -s
         - name: Run flake8
           run: |
-            pipenv run flake8 --max-line-length=120 --ignore=F405,E402
+            pipenv run flake8 --max-line-length=120

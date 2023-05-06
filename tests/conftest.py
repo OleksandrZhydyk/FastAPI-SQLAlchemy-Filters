@@ -7,11 +7,12 @@ from sqlalchemy import Column, Integer, Date, Text, String, Boolean, DateTime, E
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from base_filters.main import FilterCore
-from base_filters.filters import FiltersList as fls
+from base_filter.main import FilterCore
+from base_filter.filters import FiltersList as fls
 from tests.utils import JobCategory
 
 Base = declarative_base()
+
 
 class Vacancy(Base):
     __tablename__ = "vacancies"
@@ -73,15 +74,16 @@ async def session(create_session) -> AsyncSession:
 @pytest.fixture(scope="function")
 async def create_vacancies(session):
     vacancy_instances = []
+    enum_category = [member.name for member in JobCategory]
     for i in range(1, 11):
         vacancy = Vacancy(
             title=f"title{i}",
             description=f"description{i}",
             salary_from=50 + i * 10,
             salary_up_to=100 + i * 10,
-            created_at=date(2023, 5, 5 + i),
-            updated_at=datetime(2023, 1 + i, 5, 15, 15, 15),
-            category=JobCategory.miscellaneous
+            created_at=date(2023, 5, i),
+            updated_at=datetime(2023, i, 5, 15, 15, 15),
+            category=JobCategory[enum_category[i - 1]]
         )
         vacancy_instances.append(vacancy)
     session.add_all(vacancy_instances)
@@ -95,7 +97,8 @@ def get_custom_restriction():
         'category': [fls.startswith, fls.eq, fls.in_],
         'salary_from': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_],
         'description': [fls.like, fls.not_like, fls.contains, fls.eq, fls.in_],
-        'created_at': [fls.between, fls.like, fls.in_, fls.contains, fls.eq, fls.gt, fls.lt]
+        'created_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt],
+        'updated_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt]
     }
 
 
