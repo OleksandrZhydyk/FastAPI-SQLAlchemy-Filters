@@ -79,11 +79,95 @@ async def test_contains_with_str(session, get_filter, create_vacancies):
     }
 
 
+async def test_endswith_with_str(session, get_filter, create_vacancies):
+    query = get_filter.get_query("title__endswith=le1")
+    res = await session.execute(query)
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
+    assert len(data['vacancies']) == 1
+    assert isinstance(data['vacancies'][0]["created_at"], date)
+    assert isinstance(data['vacancies'][0]["updated_at"], datetime)
+    check_data = data['vacancies'][0].copy()
+    del check_data['created_at']
+    del check_data['updated_at']
+    assert check_data == {
+        'id': 1,
+        'title': 'title1',
+        'description': 'description1',
+        'is_active': True,
+        'salary_from': 60,
+        'salary_up_to': 110,
+        'category': JobCategory.finance
+    }
+
+
 async def test_in_with_int(session, get_filter, create_vacancies):
     query = get_filter.get_query("salary_from__in_=60,70,80")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
     assert len(data['vacancies']) == 3
+    assert isinstance(data['vacancies'][0]["created_at"], date)
+    assert isinstance(data['vacancies'][0]["updated_at"], datetime)
+    check_data = data['vacancies'][0].copy()
+    del check_data['created_at']
+    del check_data['updated_at']
+    assert check_data == {
+        'id': 1,
+        'title': 'title1',
+        'description': 'description1',
+        'is_active': True,
+        'salary_from': 60,
+        'salary_up_to': 110,
+        'category': JobCategory.finance
+    }
+
+
+async def test_gte_with_int(session, get_filter, create_vacancies):
+    query = get_filter.get_query("salary_from__gte=120")
+    res = await session.execute(query)
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
+    assert len(data['vacancies']) == 4
+    assert isinstance(data['vacancies'][0]["created_at"], date)
+    assert isinstance(data['vacancies'][0]["updated_at"], datetime)
+    check_data = data['vacancies'][0].copy()
+    del check_data['created_at']
+    del check_data['updated_at']
+    assert check_data == {
+        'id': 7,
+        'title': 'title7',
+        'description': 'description7',
+        'is_active': True,
+        'salary_from': 120,
+        'salary_up_to': 170,
+        'category': JobCategory.construction
+    }
+
+
+async def test_not_eq_with_date(session, get_filter, create_vacancies):
+    query = get_filter.get_query("created_at__not_eq=2023-05-01")
+    res = await session.execute(query)
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
+    assert len(data['vacancies']) == 9
+    assert isinstance(data['vacancies'][0]["created_at"], date)
+    assert isinstance(data['vacancies'][0]["updated_at"], datetime)
+    check_data = data['vacancies'][0].copy()
+    del check_data['created_at']
+    del check_data['updated_at']
+    assert check_data == {
+        'id': 2,
+        'title': 'title2',
+        'description': 'description2',
+        'is_active': True,
+        'salary_from': 70,
+        'salary_up_to': 120,
+        'category': JobCategory.marketing
+    }
+
+
+async def test_eq_with_bool(session, get_filter, create_vacancies):
+    query = get_filter.get_query("is_active__eq=true")
+    res = await session.execute(query)
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
+    assert len(data['vacancies']) == 10
     assert isinstance(data['vacancies'][0]["created_at"], date)
     assert isinstance(data['vacancies'][0]["updated_at"], datetime)
     check_data = data['vacancies'][0].copy()
@@ -163,7 +247,7 @@ async def test_between_with_date(session, get_filter, create_vacancies):
     }
 
 
-async def test_qt_with_int(session, get_filter, create_vacancies):
+async def test_gt_with_int(session, get_filter, create_vacancies):
     query = get_filter.get_query("salary_from__gt=100")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
@@ -299,7 +383,16 @@ async def test_complex_query(session, get_filter, create_vacancies):
             HTTP_400_BAD_REQUEST,
             "Incorrect filter request syntax, "
             "please use pattern :'{field_name}__{condition}={value}{conjunction}'"
-        )
+        ),
+        (
+            "is_active__eq=100",
+            HTTP_400_BAD_REQUEST,
+            [
+                {'loc': ['is_active'],
+                 'msg': 'value could not be parsed to a boolean',
+                 'type': 'type_error.bool'}
+            ]
+        ),
     )
 )
 def test_fail_filter(get_filter, bad_filter, expected_status_code, expected_detail):

@@ -62,7 +62,7 @@ select(model)
             and_(
                 model.salary_from.in_(60,70,80),
                 model.created_at.between(2023-05-01, 2023-05-05)
-                ),
+            ),
             model.category == 'Medicine'
         )
 ```

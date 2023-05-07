@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Tuple, Optional, Union
+from typing import Any, Dict, List, Tuple, Optional, Union, Type
 
 import pydantic
 from fastapi import HTTPException
@@ -25,7 +25,7 @@ class FilterCore:
     """
 
     def __init__(
-        self, model: DeclarativeMeta, allowed_filters: Dict[str, List[fls]]
+        self, model: Type[DeclarativeMeta], allowed_filters: Dict[str, List[fls]]
     ) -> None:
         """
         Produce a class:`FilterCore` object against a function
@@ -38,20 +38,13 @@ class FilterCore:
                     'field_name': [contains, like]
                 }
         """
-        self.model = model
-        self.allowed_filters = allowed_filters
-        self.model_serializer = self._create_pydantic_serializer()
+        self._model = model
+        self._allowed_filters = allowed_filters
+        self._model_serializer = self._create_pydantic_serializer()
 
     def get_query(self, custom_filter: str) -> Select:
         """
         Construct the SQLAlchemy orm query from request query string
-
-        >>> get_query(
-        >>>    'salary_from__in_=60,70,80&'
-        >>>    'created_at__between=2023-05-01,2023-05-05|'
-        >>>    'category__eq=Medicine'
-        >>>    )
-
 
         :param custom_filter: request query string with fields and filter conditions
             'salary_from__in_=60,70,80&
@@ -64,15 +57,15 @@ class FilterCore:
                         and_(
                             model.salary_from.in_(60,70,80),
                             model.created_at.between(2023-05-01, 2023-05-05)
-                            ),
+                        ),
                         model.category == 'Medicine'
                     )
         """
         if not custom_filter:
-            query = select(self.model)
+            query = select(self._model)
             return query
         conditions = []
-        query_parser = QueryParser(custom_filter, self.model, self.allowed_filters)
+        query_parser = QueryParser(custom_filter, self._model, self._allowed_filters)
         for and_expressions in query_parser.get_parsed_query():
             and_condition = []
             for expression in and_expressions:
@@ -82,7 +75,7 @@ class FilterCore:
                 param = self._get_orm_for_field(column, operator, value)
                 and_condition.append(param)
             conditions.append(and_(*and_condition))
-        query = select(self.model).filter(or_(*conditions))
+        query = select(self._model).filter(or_(*conditions))
         return query
 
     def _create_pydantic_serializer(self) -> Dict[str, ModelMetaclass]:
@@ -99,7 +92,7 @@ class FilterCore:
                     field: List[type]
         }
         """
-        pydantic_serializer = sqlalchemy_to_pydantic(self.model)
+        pydantic_serializer = sqlalchemy_to_pydantic(self._model)
         fields_to_optional = {
             f.name: (f.type_, None) for f in pydantic_serializer.__fields__.values()
         }
@@ -107,8 +100,8 @@ class FilterCore:
             f.name: (List[f.type_], None)
             for f in pydantic_serializer.__fields__.values()
         }
-        optional_model = create_model(self.model.__name__, **fields_to_optional)
-        list_model = create_model(self.model.__name__, **fields_wrap_to_list)
+        optional_model = create_model(self._model.__name__, **fields_to_optional)
+        list_model = create_model(self._model.__name__, **fields_wrap_to_list)
         return {"optional_model": optional_model, "list_model": list_model}
 
     @staticmethod
@@ -141,18 +134,17 @@ class FilterCore:
                     datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
                     for date_str in value
                 ]
-            elif isinstance(column.type, Date):
+            if isinstance(column.type, Date):
                 value = [
                     datetime.strptime(date_str, "%Y-%m-%d").date() for date_str in value
                 ]
-            else:
-                if operator not in [fls.between, fls.in_]:
-                    value = value[0]
-                    serialized_dict = self.model_serializer["optional_model"](
-                        **{column.name: value}
-                    ).dict(exclude_none=True)
-                    return serialized_dict
-            serialized_dict = self.model_serializer["list_model"](
+            if operator not in [fls.between, fls.in_]:
+                value = value[0]
+                serialized_dict = self._model_serializer["optional_model"](
+                    **{column.name: value}
+                ).dict(exclude_none=True)
+                return serialized_dict
+            serialized_dict = self._model_serializer["list_model"](
                 **{column.name: value}
             ).dict(exclude_none=True)
             return serialized_dict

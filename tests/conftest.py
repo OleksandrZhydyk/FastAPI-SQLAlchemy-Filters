@@ -93,12 +93,13 @@ async def create_vacancies(session):
 @pytest.fixture
 def get_custom_restriction():
     return {
-        'title': [fls.startswith, fls.eq, fls.in_],
+        'title': [fls.startswith, fls.eq, fls.endswith],
         'category': [fls.startswith, fls.eq, fls.in_],
-        'salary_from': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_],
+        'salary_from': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_, fls.gte],
         'description': [fls.like, fls.not_like, fls.contains, fls.eq, fls.in_],
-        'created_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt],
-        'updated_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt]
+        'created_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt, fls.not_eq],
+        'updated_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt],
+        'is_active': [fls.eq]
     }
 
 
