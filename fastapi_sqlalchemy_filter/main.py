@@ -24,7 +24,9 @@ class FilterCore:
     Convert parsed query data to python data types and form SQLAlchemy query.
     """
 
-    def __init__(self, model: DeclarativeMeta, allowed_filters: Dict[str, List[fls]]) -> None:
+    def __init__(
+        self, model: DeclarativeMeta, allowed_filters: Dict[str, List[fls]]
+    ) -> None:
         """
         Produce a class:`FilterCore` object against a function
 
@@ -98,14 +100,21 @@ class FilterCore:
         }
         """
         pydantic_serializer = sqlalchemy_to_pydantic(self.model)
-        fields_to_optional = {f.name: (f.type_, None) for f in pydantic_serializer.__fields__.values()}
-        fields_wrap_to_list = {f.name: (List[f.type_], None) for f in pydantic_serializer.__fields__.values()}
+        fields_to_optional = {
+            f.name: (f.type_, None) for f in pydantic_serializer.__fields__.values()
+        }
+        fields_wrap_to_list = {
+            f.name: (List[f.type_], None)
+            for f in pydantic_serializer.__fields__.values()
+        }
         optional_model = create_model(self.model.__name__, **fields_to_optional)
         list_model = create_model(self.model.__name__, **fields_wrap_to_list)
-        return {'optional_model': optional_model, 'list_model': list_model}
+        return {"optional_model": optional_model, "list_model": list_model}
 
     @staticmethod
-    def _get_orm_for_field(column: InstrumentedAttribute, operator: str, value: Any) -> BinaryExpression:
+    def _get_orm_for_field(
+        column: InstrumentedAttribute, operator: str, value: Any
+    ) -> BinaryExpression:
         """
         Create SQLAlchemy orm expression for the field
         """
@@ -116,37 +125,45 @@ class FilterCore:
 
         return param
 
-    def _format_expression(self, column: InstrumentedAttribute, operator: str, value: str) -> dict[str, Any]:
+    def _format_expression(
+        self, column: InstrumentedAttribute, operator: str, value: str
+    ) -> dict[str, Any]:
         """
         Serialize expression value from string to python type value,
         according to db model types
 
         :return: {'field_name': [value, value]}
         """
-        value = value.split(',')
+        value = value.split(",")
         try:
             if isinstance(column.type, DateTime):
-                value = [datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S') for date_str in value]
+                value = [
+                    datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                    for date_str in value
+                ]
             elif isinstance(column.type, Date):
-                value = [datetime.strptime(date_str, '%Y-%m-%d').date() for date_str in value]
+                value = [
+                    datetime.strptime(date_str, "%Y-%m-%d").date() for date_str in value
+                ]
             else:
                 if operator not in [fls.between, fls.in_]:
                     value = value[0]
-                    serialized_dict = self.model_serializer['optional_model'](**{column.name: value})\
-                        .dict(exclude_none=True)
+                    serialized_dict = self.model_serializer["optional_model"](
+                        **{column.name: value}
+                    ).dict(exclude_none=True)
                     return serialized_dict
-            serialized_dict = self.model_serializer['list_model'](**{column.name: value})\
-                .dict(exclude_none=True)
+            serialized_dict = self.model_serializer["list_model"](
+                **{column.name: value}
+            ).dict(exclude_none=True)
             return serialized_dict
         except pydantic.ValidationError as e:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=json.loads(e.json())
+                status_code=status.HTTP_400_BAD_REQUEST, detail=json.loads(e.json())
             )
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Incorrect filter value '{value}'"
+                detail=f"Incorrect filter value '{value}'",
             )
 
 
@@ -154,6 +171,7 @@ class QueryParser:
     """
     Class parse request query string.
     """
+
     def __init__(self, query, model, allowed_filters):
         self.query = query
         self.model = model
@@ -191,39 +209,43 @@ class QueryParser:
         and_blocks = [block.split("&") for block in self.query.split("|")]
         return and_blocks
 
-    def _parse_expression(self, expression: str) -> Union[Tuple[InstrumentedAttribute, str, str], HTTPException]:
+    def _parse_expression(
+        self, expression: str
+    ) -> Union[Tuple[InstrumentedAttribute, str, str], HTTPException]:
         try:
-            field_name, condition = expression.split('__')
+            field_name, condition = expression.split("__")
             operator, value = condition.split("=")
         except Exception:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Incorrect filter request syntax,"
-                       " please use pattern :"
-                       "'{field_name}__{condition}={value}{conjunction}'"
+                " please use pattern :"
+                "'{field_name}__{condition}={value}{conjunction}'",
             )
         if not hasattr(self.model, field_name):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"DB model {self.model} doesn't have field '{field_name}'"
+                detail=f"DB model {self.model} doesn't have field '{field_name}'",
             )
         else:
             column = getattr(self.model, field_name)
         return column, operator, value
 
-    def _validate_query_params(self, field_name: str, operator: str) -> Optional[HTTPException]:
+    def _validate_query_params(
+        self, field_name: str, operator: str
+    ) -> Optional[HTTPException]:
         """
         Check expression on valid and allowed field_name and operator
         """
         if field_name not in self.allowed_filters:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Forbidden filter field '{field_name}'"
+                detail=f"Forbidden filter field '{field_name}'",
             )
         for allow_filter in self.allowed_filters[field_name]:
             if operator == allow_filter.name:
                 return
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Forbidden filter '{operator}' for '{field_name}'"
+            detail=f"Forbidden filter '{operator}' for '{field_name}'",
         )
