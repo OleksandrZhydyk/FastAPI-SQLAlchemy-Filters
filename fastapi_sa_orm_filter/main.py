@@ -15,7 +15,7 @@ from starlette import status
 from sqlalchemy.types import Date, DateTime
 from sqlalchemy.sql import Select
 
-from fastapi_sqlalchemy_filter.filters import FiltersList as fls
+from fastapi_sa_orm_filter.filters import FiltersList as fls
 
 
 class FilterCore:

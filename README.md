@@ -6,7 +6,7 @@ Supported operators, datatypes and example of work you can find below.
 
 ### Installation
 ```shell
-pip install fastapi-sqlalchemy-filter
+pip install fastapi-sa-orm-filter
 ```
 
 ### Quickstart
@@ -14,8 +14,8 @@ pip install fastapi-sqlalchemy-filter
 ```shell
 from fastapi import FastAPI
 from fastapi.params import Query
-from fastapi_sqlalchemy_filter.main import FilterCore
-from fastapi_sqlalchemy_filter.filters import FiltersList as fls
+from fastapi_sa_orm_filter.main import FilterCore
+from fastapi_sa_orm_filter.filters import FiltersList as fls
 
 from db.base import get_session
 from db.models import MyModel
@@ -35,7 +35,7 @@ my_item_filter = {
 async def get_filtered_items(
     filter: str = Query(default=''),
     db: AsyncSession = Depends(get_session)
- ):
+ ) -> List[MyModel]:
     my_filter = FilterCore(MyModel, my_item_filter)
     query = my_filter.get_query(filter)
     res = await db.execute(query)

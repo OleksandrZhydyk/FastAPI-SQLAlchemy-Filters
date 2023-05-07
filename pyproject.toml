@@ -3,7 +3,7 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "fastapi-sqlalchemy-filter"
+name = "fastapi-sa-orm-filter"
 authors = [{name = "Oleksandr Zhydyk", email = "zhydykalex@ukr.net"}]
 readme = "README.md"
 license = {file = "LICENSE"}
