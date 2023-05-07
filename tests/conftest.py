@@ -7,8 +7,8 @@ from sqlalchemy import Column, Integer, Date, Text, String, Boolean, DateTime, E
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from base_filter.main import FilterCore
-from base_filter.filters import FiltersList as fls
+from fastapi_sqlalchemy_filter.main import FilterCore
+from fastapi_sqlalchemy_filter.filters import FiltersList as fls
 from tests.utils import JobCategory
 
 Base = declarative_base()

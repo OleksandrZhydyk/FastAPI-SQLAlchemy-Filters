@@ -58,6 +58,27 @@ async def test_in_with_str(session, get_filter, create_vacancies):
     }
 
 
+async def test_contains_with_str(session, get_filter, create_vacancies):
+    query = get_filter.get_query("description__contains=tion1")
+    res = await session.execute(query)
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
+    assert len(data['vacancies']) == 2
+    assert isinstance(data['vacancies'][0]["created_at"], date)
+    assert isinstance(data['vacancies'][0]["updated_at"], datetime)
+    check_data = data['vacancies'][-1].copy()
+    del check_data['created_at']
+    del check_data['updated_at']
+    assert check_data == {
+        'id': 10,
+        'title': 'title10',
+        'description': 'description10',
+        'is_active': True,
+        'salary_from': 150,
+        'salary_up_to': 200,
+        'category': JobCategory.miscellaneous
+    }
+
+
 async def test_in_with_int(session, get_filter, create_vacancies):
     query = get_filter.get_query("salary_from__in_=60,70,80")
     res = await session.execute(query)

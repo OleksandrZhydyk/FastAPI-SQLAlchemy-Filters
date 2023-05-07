@@ -11,26 +11,28 @@
 ```shell
 from fastapi import FastAPI
 from fastapi.params import Query
-from fastapi_sqlalchemy_filter.base_filter import FilterCore
+from fastapi_sqlalchemy_filter.fastapi_sqlalchemy_filter import FilterCore
 from fastapi_sqlalchemy_filter.filters import FiltersList as fls
 
+from db.base import get_session
 from db.models import MyModel
 
 
 app = FastAPI()
 
+# Define fields and operators for filter
 my_item_filter = {
-        'my_model_field_name(enum)': [fls.eq, fls.in_],
-        'my_model_field_name(int)': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_],
-        'my_model_field_name(str)': [fls.like, fls.startswith, fls.contains, fls.eq, fls.in_],
-        'my_model_field_name(datetime)': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt]
-    }
+    'my_model_field_name': [fls.eq, fls.in_],
+    'my_model_field_name': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_],
+    'my_model_field_name': [fls.like, fls.startswith, fls.contains, fls.eq, fls.in_],
+    'my_model_field_name': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt]
+}
 
 @app.get("/")
 async def get_filtered_items(
-             filter: str = Query(default=''),
-             db: AsyncSession
-            ):
+    filter: str = Query(default=''),
+    db: AsyncSession = Depends(get_session)
+ ):
     my_filter = FilterCore(MyModel, my_item_filter)
     query = my_filter.get_query(filter)
     res = await db.execute(query)
@@ -41,18 +43,25 @@ async def get_filtered_items(
 
 ```shell
 
- get_query(
-      'salary_from__in_=60,70,80&'
-      'created_at__between=2023-05-01,2023-05-05|'
-      'category__eq=Medicine'
- )
+# Input query string
+'''
+    salary_from__in_=60,70,80&
+    created_at__between=2023-05-01,2023-05-05|
+    category__eq=Medicine"
+'''
+
    
  # Return SQLAlchemy orm query exact as:
            
-    SELECT * from model
-    WHERE model.salary_from  IN (60,70,80)
-    AND model.created_at BETWEEN '2023-05-01' AND '2023-05-05'
-    OR model.category = 'Medicine';
+select(model)
+    .where(
+        or_(
+            and_(
+                model.salary_from.in_(60,70,80),
+                model.created_at.between(2023-05-01, 2023-05-05)
+                ),
+            model.category == 'Medicine'
+        )
 ```
 
 ### Supported SQLAlchemy datatypes:
