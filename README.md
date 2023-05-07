@@ -1,17 +1,20 @@
 ## FastAPI SQLAlchemy Filter 
+Package that helps to implement easy objects filter for applications
+build on FastAPI and SQLAlchemy.
+For using you just need to define your custom filter with filtered fields and applied operators.
+Supported operators, datatypes and example of work you can find below.
 
-### Supported query string format
-
-* field_name__eq=value
-* field_name__in_=value1,value2
-* field_name__eq=value&field_name__in_=value1,value2
+### Installation
+```shell
+pip install fastapi-sqlalchemy-filter
+```
 
 ### Quickstart
 
 ```shell
 from fastapi import FastAPI
 from fastapi.params import Query
-from fastapi_sqlalchemy_filter.fastapi_sqlalchemy_filter import FilterCore
+from fastapi_sqlalchemy_filter.main import FilterCore
 from fastapi_sqlalchemy_filter.filters import FiltersList as fls
 
 from db.base import get_session
@@ -24,8 +27,8 @@ app = FastAPI()
 my_item_filter = {
     'my_model_field_name': [fls.eq, fls.in_],
     'my_model_field_name': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_],
-    'my_model_field_name': [fls.like, fls.startswith, fls.contains, fls.eq, fls.in_],
-    'my_model_field_name': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt]
+    'my_model_field_name': [fls.like, fls.startswith, fls.contains, fls.in_],
+    'my_model_field_name': [fls.between, fls.not_eq, fls.gte, fls.lte]
 }
 
 @app.get("/")
@@ -51,7 +54,7 @@ async def get_filtered_items(
 '''
 
    
- # Return SQLAlchemy orm query exact as:
+# Returned SQLAlchemy orm query exact as:
            
 select(model)
     .where(
@@ -63,6 +66,12 @@ select(model)
             model.category == 'Medicine'
         )
 ```
+
+### Supported query string format
+
+* field_name__eq=value
+* field_name__in_=value1,value2
+* field_name__eq=value&field_name__in_=value1,value2
 
 ### Supported SQLAlchemy datatypes:
 * DATETIME

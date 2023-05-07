@@ -2,8 +2,7 @@ name: ci_filter
 
 on:
   - push
-#  - pull_request
-
+  - pull_request
 
 jobs:
   test:
