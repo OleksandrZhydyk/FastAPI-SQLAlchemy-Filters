@@ -3,12 +3,12 @@ from datetime import date, datetime
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import Column, Integer, Date, Text, String, Boolean, DateTime, Enum
+from sqlalchemy import Column, Integer, Date, Text, String, Boolean, DateTime, Enum, Float
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 from fastapi_sa_orm_filter.main import FilterCore
-from fastapi_sa_orm_filter.filters import FiltersList as fls
+from fastapi_sa_orm_filter.operators import Operators as ops
 from tests.utils import JobCategory
 
 Base = declarative_base()
@@ -23,7 +23,7 @@ class Vacancy(Base):
     created_at = Column(Date)
     updated_at = Column(DateTime)
     salary_from = Column(Integer)
-    salary_up_to = Column(Integer)
+    salary_up_to = Column(Float)
     category = Column(Enum(JobCategory), nullable=False)
 
 
@@ -80,7 +80,7 @@ async def create_vacancies(session):
             title=f"title{i}",
             description=f"description{i}",
             salary_from=50 + i * 10,
-            salary_up_to=100 + i * 10,
+            salary_up_to=100.725 + i * 10,
             created_at=date(2023, 5, i),
             updated_at=datetime(2023, i, 5, 15, 15, 15),
             category=JobCategory[enum_category[i - 1]]
@@ -93,13 +93,14 @@ async def create_vacancies(session):
 @pytest.fixture
 def get_custom_restriction():
     return {
-        'title': [fls.startswith, fls.eq, fls.endswith],
-        'category': [fls.startswith, fls.eq, fls.in_],
-        'salary_from': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_, fls.gte],
-        'description': [fls.like, fls.not_like, fls.contains, fls.eq, fls.in_],
-        'created_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt, fls.not_eq],
-        'updated_at': [fls.between, fls.in_, fls.eq, fls.gt, fls.lt],
-        'is_active': [fls.eq]
+        'title': [ops.startswith, ops.eq, ops.endswith],
+        'category': [ops.startswith, ops.eq, ops.in_],
+        'salary_from': [ops.between, ops.eq, ops.gt, ops.lt, ops.in_, ops.gte],
+        'salary_up_to': [ops.eq, ops.gt],
+        'description': [ops.like, ops.not_like, ops.contains, ops.eq, ops.in_],
+        'created_at': [ops.between, ops.in_, ops.eq, ops.gt, ops.lt, ops.not_eq],
+        'updated_at': [ops.between, ops.in_, ops.eq, ops.gt, ops.lt],
+        'is_active': [ops.eq]
     }
 
 

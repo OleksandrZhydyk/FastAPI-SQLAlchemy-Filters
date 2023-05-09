@@ -20,10 +20,11 @@ class ListPydanticVacancy(BaseModel):
 async def test_eq_with_int(session, get_filter, create_vacancies):
     query = get_filter.get_query("salary_from__eq=60")
     res = await session.execute(query)
-    data = PydanticVacancy.from_orm(res.scalar()).dict()
-    assert isinstance(data["created_at"], date)
-    assert isinstance(data["updated_at"], datetime)
-    check_data = data.copy()
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
+    assert len(data['vacancies']) == 1
+    assert isinstance(data['vacancies'][0]["created_at"], date)
+    assert isinstance(data['vacancies'][0]["updated_at"], datetime)
+    check_data = data['vacancies'][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
     assert check_data == {
@@ -32,8 +33,29 @@ async def test_eq_with_int(session, get_filter, create_vacancies):
         'description': 'description1',
         'is_active': True,
         'salary_from': 60,
-        'salary_up_to': 110,
+        'salary_up_to': 110.725,
         'category': JobCategory.finance
+    }
+
+
+async def test_eq_with_float(session, get_filter, create_vacancies):
+    query = get_filter.get_query("salary_up_to__eq=120.725")
+    res = await session.execute(query)
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).dict()
+    assert len(data['vacancies']) == 1
+    assert isinstance(data['vacancies'][0]["created_at"], date)
+    assert isinstance(data['vacancies'][0]["updated_at"], datetime)
+    check_data = data['vacancies'][0].copy()
+    del check_data["created_at"]
+    del check_data["updated_at"]
+    assert check_data == {
+        'id': 2,
+        'title': 'title2',
+        'description': 'description2',
+        'is_active': True,
+        'salary_from': 70,
+        'salary_up_to': 120.725,
+        'category': JobCategory.marketing
     }
 
 
@@ -53,7 +75,7 @@ async def test_in_with_str(session, get_filter, create_vacancies):
         'description': 'description1',
         'is_active': True,
         'salary_from': 60,
-        'salary_up_to': 110,
+        'salary_up_to': 110.725,
         'category': JobCategory.finance
     }
 
@@ -74,7 +96,7 @@ async def test_contains_with_str(session, get_filter, create_vacancies):
         'description': 'description10',
         'is_active': True,
         'salary_from': 150,
-        'salary_up_to': 200,
+        'salary_up_to': 200.725,
         'category': JobCategory.miscellaneous
     }
 
@@ -95,7 +117,7 @@ async def test_endswith_with_str(session, get_filter, create_vacancies):
         'description': 'description1',
         'is_active': True,
         'salary_from': 60,
-        'salary_up_to': 110,
+        'salary_up_to': 110.725,
         'category': JobCategory.finance
     }
 
@@ -116,7 +138,7 @@ async def test_in_with_int(session, get_filter, create_vacancies):
         'description': 'description1',
         'is_active': True,
         'salary_from': 60,
-        'salary_up_to': 110,
+        'salary_up_to': 110.725,
         'category': JobCategory.finance
     }
 
@@ -137,7 +159,7 @@ async def test_gte_with_int(session, get_filter, create_vacancies):
         'description': 'description7',
         'is_active': True,
         'salary_from': 120,
-        'salary_up_to': 170,
+        'salary_up_to': 170.725,
         'category': JobCategory.construction
     }
 
@@ -158,7 +180,7 @@ async def test_not_eq_with_date(session, get_filter, create_vacancies):
         'description': 'description2',
         'is_active': True,
         'salary_from': 70,
-        'salary_up_to': 120,
+        'salary_up_to': 120.725,
         'category': JobCategory.marketing
     }
 
@@ -179,7 +201,7 @@ async def test_eq_with_bool(session, get_filter, create_vacancies):
         'description': 'description1',
         'is_active': True,
         'salary_from': 60,
-        'salary_up_to': 110,
+        'salary_up_to': 110.725,
         'category': JobCategory.finance
     }
 
@@ -200,7 +222,7 @@ async def test_between_with_int(session, get_filter, create_vacancies):
         'description': 'description1',
         'is_active': True,
         'salary_from': 60,
-        'salary_up_to': 110,
+        'salary_up_to': 110.725,
         'category': JobCategory.finance
     }
 
@@ -221,7 +243,7 @@ async def test_between_with_datetime(session, get_filter, create_vacancies):
         'description': 'description4',
         'is_active': True,
         'salary_from': 90,
-        'salary_up_to': 140,
+        'salary_up_to': 140.725,
         'category': JobCategory.it
     }
 
@@ -242,7 +264,7 @@ async def test_between_with_date(session, get_filter, create_vacancies):
         'description': 'description5',
         'is_active': True,
         'salary_from': 100,
-        'salary_up_to': 150,
+        'salary_up_to': 150.725,
         'category': JobCategory.metallurgy
     }
 
@@ -263,7 +285,7 @@ async def test_gt_with_int(session, get_filter, create_vacancies):
         'description': 'description6',
         'is_active': True,
         'salary_from': 110,
-        'salary_up_to': 160,
+        'salary_up_to': 160.725,
         'category': JobCategory.medicine
     }
 
@@ -284,7 +306,7 @@ async def test_enum_with_str(session, get_filter, create_vacancies):
         'description': 'description6',
         'is_active': True,
         'salary_from': 110,
-        'salary_up_to': 160,
+        'salary_up_to': 160.725,
         'category': JobCategory.medicine
     }
 
@@ -309,7 +331,7 @@ async def test_complex_query(session, get_filter, create_vacancies):
         'description': 'description5',
         'is_active': True,
         'salary_from': 100,
-        'salary_up_to': 150,
+        'salary_up_to': 150.725,
         'category': JobCategory.metallurgy
     }
 
@@ -391,6 +413,15 @@ async def test_complex_query(session, get_filter, create_vacancies):
                 {'loc': ['is_active'],
                  'msg': 'value could not be parsed to a boolean',
                  'type': 'type_error.bool'}
+            ]
+        ),
+        (
+            "salary_up_to__eq=100/12",
+            HTTP_400_BAD_REQUEST,
+            [
+                {'loc': ['salary_up_to'],
+                 'msg': 'value is not a valid float',
+                 'type': 'type_error.float'}
             ]
         ),
     )

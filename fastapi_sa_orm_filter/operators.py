@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class FiltersList(str, Enum):
+class Operators(str, Enum):
     eq = "__eq__"
     gt = "__gt__"
     lt = "__lt__"

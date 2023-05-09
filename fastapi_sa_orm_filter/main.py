@@ -1,9 +1,8 @@
 import json
-from datetime import datetime
 from typing import Any, Dict, List, Tuple, Optional, Union, Type
 
 import pydantic
-from fastapi import HTTPException
+from fastapi import HTTPException, Query
 from pydantic import create_model
 from pydantic.main import ModelMetaclass
 from pydantic_sqlalchemy import sqlalchemy_to_pydantic
@@ -12,10 +11,9 @@ from sqlalchemy.orm import InstrumentedAttribute, DeclarativeMeta
 from sqlalchemy.sql.elements import BinaryExpression
 from sqlalchemy.sql.expression import and_, or_
 from starlette import status
-from sqlalchemy.types import Date, DateTime
 from sqlalchemy.sql import Select
 
-from fastapi_sa_orm_filter.filters import FiltersList as fls
+from fastapi_sa_orm_filter.operators import Operators as ops
 
 
 class FilterCore:
@@ -25,7 +23,7 @@ class FilterCore:
     """
 
     def __init__(
-        self, model: Type[DeclarativeMeta], allowed_filters: Dict[str, List[fls]]
+        self, model: Type[DeclarativeMeta], allowed_filters: Dict[str, List[ops]]
     ) -> None:
         """
         Produce a class:`FilterCore` object against a function
@@ -47,9 +45,10 @@ class FilterCore:
         Construct the SQLAlchemy orm query from request query string
 
         :param custom_filter: request query string with fields and filter conditions
-            'salary_from__in_=60,70,80&
-             created_at__between=2023-05-01,2023-05-05|
-             category__eq=Medicine'
+            salary_from__in_=60,70,80&
+            created_at__between=2023-05-01,2023-05-05|
+            category__eq=Medicine
+
         :return:
             select(model)
                 .where(
@@ -111,11 +110,10 @@ class FilterCore:
         """
         Create SQLAlchemy orm expression for the field
         """
-        if operator in [fls.between]:
-            param = getattr(column, fls[operator].value)(*value)
+        if operator in [ops.between]:
+            param = getattr(column, ops[operator].value)(*value)
         else:
-            param = getattr(column, fls[operator].value)(value)
-
+            param = getattr(column, ops[operator].value)(value)
         return param
 
     def _format_expression(
@@ -129,16 +127,7 @@ class FilterCore:
         """
         value = value.split(",")
         try:
-            if isinstance(column.type, DateTime):
-                value = [
-                    datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                    for date_str in value
-                ]
-            if isinstance(column.type, Date):
-                value = [
-                    datetime.strptime(date_str, "%Y-%m-%d").date() for date_str in value
-                ]
-            if operator not in [fls.between, fls.in_]:
+            if operator not in [ops.between, ops.in_]:
                 value = value[0]
                 serialized_dict = self._model_serializer["optional_model"](
                     **{column.name: value}
@@ -241,3 +230,5 @@ class QueryParser:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Forbidden filter '{operator}' for '{field_name}'",
         )
+
+    Query

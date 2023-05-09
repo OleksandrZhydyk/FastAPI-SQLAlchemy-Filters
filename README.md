@@ -15,7 +15,7 @@ pip install fastapi-sa-orm-filter
 from fastapi import FastAPI
 from fastapi.params import Query
 from fastapi_sa_orm_filter.main import FilterCore
-from fastapi_sa_orm_filter.filters import FiltersList as fls
+from fastapi_sa_orm_filter.operators import Operators as ops
 
 from db.base import get_session
 from db.models import MyModel
@@ -33,11 +33,11 @@ my_item_filter = {
 
 @app.get("/")
 async def get_filtered_items(
-    filter: str = Query(default=''),
+    filter_query: str = Query(default=''),
     db: AsyncSession = Depends(get_session)
  ) -> List[MyModel]:
     my_filter = FilterCore(MyModel, my_item_filter)
-    query = my_filter.get_query(filter)
+    query = my_filter.get_query(filter_query)
     res = await db.execute(query)
     return res.scalars().all()
 ```
@@ -48,9 +48,9 @@ async def get_filtered_items(
 
 # Input query string
 '''
-    salary_from__in_=60,70,80&
-    created_at__between=2023-05-01,2023-05-05|
-    category__eq=Medicine"
+salary_from__in_=60,70,80&
+created_at__between=2023-05-01,2023-05-05|
+category__eq=Medicine"
 '''
 
    
@@ -77,6 +77,7 @@ select(model)
 * DATETIME
 * DATE
 * INTEGER
+* FLOAT
 * TEXT
 * VARCHAR
 * Enum(VARCHAR())
