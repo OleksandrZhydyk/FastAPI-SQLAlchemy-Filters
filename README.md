@@ -1,5 +1,5 @@
 ## FastAPI SQLAlchemy Filter 
-Package that helps to implement easy objects filter for applications
+Package that helps to implement easy objects filtering and sorting for applications
 build on FastAPI and SQLAlchemy.
 For using you just need to define your custom filter with filtered fields and applied operators.
 Supported operators, datatypes and example of work you can find below.
@@ -50,7 +50,8 @@ async def get_filtered_items(
 '''
 salary_from__in_=60,70,80&
 created_at__between=2023-05-01,2023-05-05|
-category__eq=Medicine"
+category__eq=Medicine&
+order_by=-id,category
 '''
 
    
@@ -64,7 +65,7 @@ select(model)
                 model.created_at.between(2023-05-01, 2023-05-05)
             ),
             model.category == 'Medicine'
-        )
+        ).order_by(model.id.desc(), model.category.asc())
 ```
 
 ### Supported query string format
@@ -72,6 +73,7 @@ select(model)
 * field_name__eq=value
 * field_name__in_=value1,value2
 * field_name__eq=value&field_name__in_=value1,value2
+* field_name__eq=value&field_name__in_=value1,value2&order_by=-field_name
 
 ### Supported SQLAlchemy datatypes:
 * DATETIME
@@ -101,3 +103,7 @@ select(model)
 * __not_in__
 * __not_like__
 * __not_between__
+
+#### For suggestions and questions, feel free to contact me through email 
+__zhydykalex@ukr.net__
+

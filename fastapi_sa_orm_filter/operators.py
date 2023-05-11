@@ -19,3 +19,8 @@ class Operators(str, Enum):
     not_in = "not_in"
     not_like = "not_like"
     not_between = "not_between"
+
+
+class Sequence(str, Enum):
+    desc = "desc"
+    asc = "asc"
