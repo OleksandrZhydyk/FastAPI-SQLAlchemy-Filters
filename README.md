@@ -24,19 +24,19 @@ from db.models import MyModel
 app = FastAPI()
 
 # Define fields and operators for filter
-my_item_filter = {
-    'my_model_field_name': [fls.eq, fls.in_],
-    'my_model_field_name': [fls.between, fls.eq, fls.gt, fls.lt, fls.in_],
-    'my_model_field_name': [fls.like, fls.startswith, fls.contains, fls.in_],
-    'my_model_field_name': [fls.between, fls.not_eq, fls.gte, fls.lte]
+my_objects_filter = {
+    'my_model_field_name': [ops.eq, ops.in_],
+    'my_model_field_name': [ops.between, ops.eq, ops.gt, ops.lt, ops.in_],
+    'my_model_field_name': [ops.like, ops.startswith, ops.contains, ops.in_],
+    'my_model_field_name': [ops.between, ops.not_eq, ops.gte, ops.lte]
 }
 
 @app.get("/")
-async def get_filtered_items(
+async def get_filtered_objects(
     filter_query: str = Query(default=''),
     db: AsyncSession = Depends(get_session)
  ) -> List[MyModel]:
-    my_filter = FilterCore(MyModel, my_item_filter)
+    my_filter = FilterCore(MyModel, my_objects_filter)
     query = my_filter.get_query(filter_query)
     res = await db.execute(query)
     return res.scalars().all()
