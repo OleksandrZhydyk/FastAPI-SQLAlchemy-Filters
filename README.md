@@ -77,7 +77,7 @@ select(model)
 
 ### Modify query for custom selection
 ```shell
-# Create a class inherited from FilterCore and rewrite 'construct_query' method.
+# Create a class inherited from FilterCore and rewrite 'get_unordered_query' method.
 # Original method is:
 def get_unordered_query(self, conditions):
     unordered_query = select(self._model).filter(or_(*conditions))
