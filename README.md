@@ -75,6 +75,30 @@ select(model)
 * field_name__eq=value&field_name__in_=value1,value2
 * field_name__eq=value&field_name__in_=value1,value2&order_by=-field_name
 
+### Modify query for custom selection
+```shell
+# Create a class inherited from FilterCore and rewrite 'construct_query' method.
+# Original method is:
+def get_unordered_query(self, conditions):
+    unordered_query = select(self._model).filter(or_(*conditions))
+    return unordered_query
+    
+# Rewrite example:
+class CustomFilter(FilterCore):
+    def __init__(self, model, allowed_filters):
+        super().__init__(model, allowed_filters)
+
+    def get_unordered_query(self, conditions):
+        unordered_query = select(
+            self._model.field_name1,
+            self._model.field_name2,
+            func.sum(self._model.field_name3).label("field_name3"),
+            self._model.field_name4
+        ).filter(or_(*conditions)).group_by(self._model.field_name2)
+        return unordered_query
+
+```
+
 ### Supported SQLAlchemy datatypes:
 * DATETIME
 * DATE

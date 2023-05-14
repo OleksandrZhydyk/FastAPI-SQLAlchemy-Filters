@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import Column, Integer, Date, Text, String, Boolean, DateTime, Enum, Float
+from sqlalchemy import Column, Integer, Date, Text, String, Boolean, DateTime, Enum, Float, select, or_, func
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 
@@ -83,7 +83,8 @@ async def create_vacancies(session):
             salary_up_to=100.725 + i * 10,
             created_at=date(2023, 5, i),
             updated_at=datetime(2023, i, 5, 15, 15, 15),
-            category=JobCategory[enum_category[i - 1]]
+            category=JobCategory[enum_category[i - 1]],
+            is_active=bool(i % 2)
         )
         vacancy_instances.append(vacancy)
     session.add_all(vacancy_instances)
@@ -107,3 +108,22 @@ def get_custom_restriction():
 @pytest.fixture
 def get_filter(get_custom_restriction):
     return FilterCore(Vacancy, get_custom_restriction)
+
+
+@pytest.fixture
+def get_custom_filter(get_custom_restriction):
+
+    class CustomFilter(FilterCore):
+        def __init__(self, model, allowed_filters):
+            super().__init__(model, allowed_filters)
+
+        def get_unordered_query(self, conditions):
+            unordered_query = select(
+                self._model.id,
+                self._model.is_active,
+                func.sum(self._model.salary_from).label("salary_from"),
+                self._model.category
+            ).filter(or_(*conditions)).group_by(self._model.is_active)
+            return unordered_query
+
+    return CustomFilter(Vacancy, get_custom_restriction)

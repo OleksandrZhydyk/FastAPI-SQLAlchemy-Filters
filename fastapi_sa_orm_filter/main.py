@@ -65,18 +65,22 @@ class FilterCore:
         split_query = self.split_by_order_by(custom_filter)
         if len(split_query) == 1:
             filter_query = self._get_filter_query(split_query[0])
-            return filter_query
+            complete_query = self.get_unordered_query(filter_query)
+            return complete_query
         filter_query_str, order_by_query_str = split_query
         filter_query = self._get_filter_query(filter_query_str)
         order_by_query = _OrderByQueryParser(self._model).get_order_by_query(order_by_query_str)
-        query = filter_query.order_by(*order_by_query)
-        return query
+        complete_query = self.get_unordered_query(filter_query).order_by(*order_by_query)
+        return complete_query
+
+    def get_unordered_query(self, conditions):
+        unordered_query = select(self._model).filter(or_(*conditions))
+        return unordered_query
 
     def _get_filter_query(self, custom_filter):
-        if not custom_filter:
-            query = select(self._model)
-            return query
-        conditions = []
+        filter_conditions = []
+        if custom_filter == '':
+            return filter_conditions
         query_parser = _FilterQueryParser(custom_filter, self._model, self._allowed_filters)
         for and_expressions in query_parser.get_parsed_query():
             and_condition = []
@@ -86,9 +90,8 @@ class FilterCore:
                 value = serialized_dict[column.name]
                 param = self._get_orm_for_field(column, operator, value)
                 and_condition.append(param)
-            conditions.append(and_(*and_condition))
-        query = select(self._model).filter(or_(*conditions))
-        return query
+            filter_conditions.append(and_(*and_condition))
+        return filter_conditions
 
     def _create_pydantic_serializer(self) -> Dict[str, ModelMetaclass]:
         """

@@ -55,9 +55,9 @@ class _FilterQueryParser:
     """
 
     def __init__(self, query: str, model: Type[DeclarativeMeta], allowed_filters: Dict[str, List[ops]]) -> None:
-        self.query = query
-        self.model = model
-        self.allowed_filters = allowed_filters
+        self._query = query
+        self._model = model
+        self._allowed_filters = allowed_filters
 
     def get_parsed_query(self) -> List[List[Any]]:
         """
@@ -88,7 +88,7 @@ class _FilterQueryParser:
                     ['field_name__operator=value']
                 ]
         """
-        and_blocks = [block.split("&") for block in self.query.split("|")]
+        and_blocks = [block.split("&") for block in self._query.split("|")]
         return and_blocks
 
     def _parse_expression(
@@ -104,13 +104,13 @@ class _FilterQueryParser:
                 " please use pattern :"
                 "'{field_name}__{condition}={value}{conjunction}'",
             )
-        if not hasattr(self.model, field_name):
+        if not hasattr(self._model, field_name):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"DB model {self.model} doesn't have field '{field_name}'",
+                detail=f"DB model {self._model} doesn't have field '{field_name}'",
             )
         else:
-            column = getattr(self.model, field_name)
+            column = getattr(self._model, field_name)
         return column, operator, value
 
     def _validate_query_params(
@@ -119,12 +119,12 @@ class _FilterQueryParser:
         """
         Check expression on valid and allowed field_name and operator
         """
-        if field_name not in self.allowed_filters:
+        if field_name not in self._allowed_filters:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Forbidden filter field '{field_name}'",
             )
-        for allow_filter in self.allowed_filters[field_name]:
+        for allow_filter in self._allowed_filters[field_name]:
             if operator == allow_filter.name:
                 return
         raise HTTPException(
