@@ -85,16 +85,14 @@ def get_unordered_query(self, conditions):
     
 # Rewrite example:
 class CustomFilter(FilterCore):
-    def __init__(self, model, allowed_filters):
-        super().__init__(model, allowed_filters)
 
     def get_unordered_query(self, conditions):
         unordered_query = select(
-            self._model.field_name1,
-            self._model.field_name2,
-            func.sum(self._model.field_name3).label("field_name3"),
-            self._model.field_name4
-        ).filter(or_(*conditions)).group_by(self._model.field_name2)
+            self.model.field_name1,
+            self.model.field_name2,
+            func.sum(self.model.field_name3).label("field_name3"),
+            self.model.field_name4
+        ).filter(or_(*conditions)).group_by(self.model.field_name2)
         return unordered_query
 
 ```

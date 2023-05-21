@@ -37,7 +37,7 @@ class FilterCore:
                     'field_name': [contains, like]
                 }
         """
-        self._model = model
+        self.model = model
         self._allowed_filters = allowed_filters
         self._model_serializer = self._create_pydantic_serializer()
 
@@ -69,19 +69,19 @@ class FilterCore:
             return complete_query
         filter_query_str, order_by_query_str = split_query
         filter_query = self._get_filter_query(filter_query_str)
-        order_by_query = _OrderByQueryParser(self._model).get_order_by_query(order_by_query_str)
+        order_by_query = _OrderByQueryParser(self.model).get_order_by_query(order_by_query_str)
         complete_query = self.get_unordered_query(filter_query).order_by(*order_by_query)
         return complete_query
 
     def get_unordered_query(self, conditions):
-        unordered_query = select(self._model).filter(or_(*conditions))
+        unordered_query = select(self.model).filter(or_(*conditions))
         return unordered_query
 
     def _get_filter_query(self, custom_filter):
         filter_conditions = []
         if custom_filter == '':
             return filter_conditions
-        query_parser = _FilterQueryParser(custom_filter, self._model, self._allowed_filters)
+        query_parser = _FilterQueryParser(custom_filter, self.model, self._allowed_filters)
         for and_expressions in query_parser.get_parsed_query():
             and_condition = []
             for expression in and_expressions:
@@ -107,7 +107,7 @@ class FilterCore:
                     field: Optional[List[type]]
         }
         """
-        pydantic_serializer = sqlalchemy_to_pydantic(self._model)
+        pydantic_serializer = sqlalchemy_to_pydantic(self.model)
         fields_to_optional = {
             f.name: (f.type_, None) for f in pydantic_serializer.__fields__.values()
         }
@@ -115,8 +115,8 @@ class FilterCore:
             f.name: (List[f.type_], None)
             for f in pydantic_serializer.__fields__.values()
         }
-        optional_model = create_model(self._model.__name__, **fields_to_optional)
-        optional_list_model = create_model(self._model.__name__, **fields_wrap_to_optional_list)
+        optional_model = create_model(self.model.__name__, **fields_to_optional)
+        optional_list_model = create_model(self.model.__name__, **fields_wrap_to_optional_list)
         return {"optional_model": optional_model, "list_model": optional_list_model}
 
     @staticmethod

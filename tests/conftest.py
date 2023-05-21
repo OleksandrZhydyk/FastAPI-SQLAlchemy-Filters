@@ -114,16 +114,14 @@ def get_filter(get_custom_restriction):
 def get_custom_filter(get_custom_restriction):
 
     class CustomFilter(FilterCore):
-        def __init__(self, model, allowed_filters):
-            super().__init__(model, allowed_filters)
 
         def get_unordered_query(self, conditions):
             unordered_query = select(
-                self._model.id,
-                self._model.is_active,
-                func.sum(self._model.salary_from).label("salary_from"),
-                self._model.category
-            ).filter(or_(*conditions)).group_by(self._model.is_active)
+                self.model.id,
+                self.model.is_active,
+                func.sum(self.model.salary_from).label("salary_from"),
+                self.model.category
+            ).filter(or_(*conditions)).group_by(self.model.is_active)
             return unordered_query
 
     return CustomFilter(Vacancy, get_custom_restriction)
