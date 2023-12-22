@@ -5,15 +5,15 @@ name = "pypi"
 
 [packages]
 fastapi = "*"
+pydantic = "*"
+sqlalchemy-to-pydantic = "*"
 sqlalchemy = "*"
-pytest = "*"
-aiosqlite = "*"
-flake8 = "*"
-pydantic-sqlalchemy = "*"
-pytest-asyncio = "*"
-black = "*"
 
 [dev-packages]
+flake8 = "*"
+pytest = "*"
+pytest-asyncio = "*"
+aiosqlite = "*"
 
 [requires]
 python_version = "3.10"

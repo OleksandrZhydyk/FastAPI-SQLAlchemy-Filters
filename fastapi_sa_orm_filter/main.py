@@ -4,11 +4,11 @@ from typing import Any, Dict, List, Type
 import pydantic
 from fastapi import HTTPException
 from pydantic import create_model
-from pydantic.main import ModelMetaclass
-from pydantic_sqlalchemy import sqlalchemy_to_pydantic
+from pydantic._internal._model_construction import ModelMetaclass
+from sqlalchemy_to_pydantic import sqlalchemy_to_pydantic
 from sqlalchemy import select
 from sqlalchemy.orm import InstrumentedAttribute, DeclarativeMeta
-from sqlalchemy.sql.elements import BinaryExpression
+from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
 from sqlalchemy.sql.expression import and_, or_
 from starlette import status
 from sqlalchemy.sql import Select
@@ -41,7 +41,7 @@ class FilterCore:
         self._allowed_filters = allowed_filters
         self._model_serializer = self._create_pydantic_serializer()
 
-    def get_query(self, custom_filter: str) -> Select:
+    def get_query(self, custom_filter: str) -> Select[Any]:
         """
         Construct the SQLAlchemy orm query from request query string
 
@@ -64,20 +64,41 @@ class FilterCore:
         """
         split_query = self.split_by_order_by(custom_filter)
         if len(split_query) == 1:
-            filter_query = self._get_filter_query(split_query[0])
-            complete_query = self.get_unordered_query(filter_query)
+            complete_query = self.get_complete_query(split_query[0])
             return complete_query
         filter_query_str, order_by_query_str = split_query
-        filter_query = self._get_filter_query(filter_query_str)
-        order_by_query = _OrderByQueryParser(self.model).get_order_by_query(order_by_query_str)
-        complete_query = self.get_unordered_query(filter_query).order_by(*order_by_query)
+        complete_query = self.get_complete_query(filter_query_str, order_by_query_str)
         return complete_query
 
-    def get_unordered_query(self, conditions):
-        unordered_query = select(self.model).filter(or_(*conditions))
-        return unordered_query
+    def get_complete_query(self, filter_query_str: str, order_by_query_str: str | None = None) -> Select[Any]:
+        select_query_part = self.get_select_query_part()
+        filter_query_part = self.get_filter_query_part(filter_query_str)
+        complete_query = select_query_part.filter(*filter_query_part)
+        group_query_part = self.get_group_by_query_part()
+        if group_query_part != []:
+            complete_query = complete_query.group_by(*group_query_part)
+        if order_by_query_str is not None:
+            order_by_query = self.get_order_by_query_part(order_by_query_str)
+            complete_query = complete_query.order_by(*order_by_query)
+        return complete_query
 
-    def _get_filter_query(self, custom_filter):
+    def get_select_query_part(self) -> Select[Any]:
+        return select(self.model)
+
+    def get_filter_query_part(self, filter_query_str: str) -> List[Any]:
+        conditions = self._get_filter_query(filter_query_str)
+        if conditions == []:
+            return conditions
+        return [or_(*conditions)]
+
+    def get_group_by_query_part(self):
+        return []
+
+    def get_order_by_query_part(self, order_by_query_str: str) -> List[UnaryExpression]:
+        order_by_parser = _OrderByQueryParser(self.model)
+        return order_by_parser.get_order_by_query(order_by_query_str)
+
+    def _get_filter_query(self, custom_filter: str) -> List[BinaryExpression]:
         filter_conditions = []
         if custom_filter == '':
             return filter_conditions
@@ -108,20 +129,12 @@ class FilterCore:
         }
         """
         pydantic_serializer = sqlalchemy_to_pydantic(self.model)
-        fields_to_optional = {
-            f.name: (f.type_, None) for f in pydantic_serializer.__fields__.values()
-        }
-        fields_wrap_to_optional_list = {
-            f.name: (List[f.type_], None)
-            for f in pydantic_serializer.__fields__.values()
-        }
-        optional_model = create_model(self.model.__name__, **fields_to_optional)
-        optional_list_model = create_model(self.model.__name__, **fields_wrap_to_optional_list)
-        return {"optional_model": optional_model, "list_model": optional_list_model}
+        optional_model = self._get_optional_pydantic_model(pydantic_serializer)
+        optional_list_model = self._get_optional_pydantic_model(pydantic_serializer, is_list=True)
+        return {"optional_model": optional_model, "optional_list_model": optional_list_model}
 
-    @staticmethod
     def _get_orm_for_field(
-        column: InstrumentedAttribute, operator: str, value: Any
+        self, column: InstrumentedAttribute, operator: str, value: Any
     ) -> BinaryExpression:
         """
         Create SQLAlchemy orm expression for the field
@@ -147,11 +160,11 @@ class FilterCore:
                 value = value[0]
                 serialized_dict = self._model_serializer["optional_model"](
                     **{column.name: value}
-                ).dict(exclude_none=True)
+                ).model_dump(exclude_none=True)
                 return serialized_dict
-            serialized_dict = self._model_serializer["list_model"](
+            serialized_dict = self._model_serializer["optional_list_model"](
                 **{column.name: value}
-            ).dict(exclude_none=True)
+            ).model_dump(exclude_none=True)
             return serialized_dict
         except pydantic.ValidationError as e:
             raise HTTPException(
@@ -172,3 +185,14 @@ class FilterCore:
                 detail="Use only one order_by directive",
             )
         return split_query
+
+    def _get_optional_pydantic_model(self, pydantic_serializer, is_list: bool = False):
+        fields = {}
+        for k, v in pydantic_serializer.model_fields.items():
+            origin_annotation = getattr(v, 'annotation')
+            if is_list:
+                fields[k] = (List[origin_annotation], None)
+            else:
+                fields[k] = (origin_annotation, None)
+        pydantic_model = create_model(self.model.__name__, **fields)
+        return pydantic_model

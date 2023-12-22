@@ -1,11 +1,14 @@
-import asyncio
 from datetime import date, datetime
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import Column, Integer, Date, Text, String, Boolean, DateTime, Enum, Float, select, or_, func
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
+from pytest_asyncio import is_async_test
+
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
 
 from fastapi_sa_orm_filter.main import FilterCore
 from fastapi_sa_orm_filter.operators import Operators as ops
@@ -16,15 +19,22 @@ Base = declarative_base()
 
 class Vacancy(Base):
     __tablename__ = "vacancies"
-    id = Column(Integer, primary_key=True)
-    title = Column(String)
-    description = Column(Text)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(Date)
-    updated_at = Column(DateTime)
-    salary_from = Column(Integer)
-    salary_up_to = Column(Float)
-    category = Column(Enum(JobCategory), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str]
+    description: Mapped[str]
+    is_active: Mapped[bool]
+    created_at: Mapped[date]
+    updated_at: Mapped[datetime]
+    salary_from: Mapped[int]
+    salary_up_to: Mapped[float]
+    category: Mapped[JobCategory] = mapped_column(nullable=False)
+
+
+def pytest_collection_modifyitems(items):
+    pytest_asyncio_tests = (item for item in items if is_async_test(item))
+    session_scope_marker = pytest.mark.asyncio(scope="session")
+    for async_test in pytest_asyncio_tests:
+        async_test.add_marker(session_scope_marker)
 
 
 @pytest.fixture(scope="session")
@@ -45,14 +55,7 @@ def create_engine(database_url):
 
 @pytest.fixture(scope="session")
 def create_session(create_engine):
-    return sessionmaker(create_engine, expire_on_commit=False, class_=AsyncSession)
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+    return async_sessionmaker(create_engine, expire_on_commit=False)
 
 
 @pytest_asyncio.fixture(autouse=True, scope="function")
@@ -115,13 +118,16 @@ def get_custom_filter(get_custom_restriction):
 
     class CustomFilter(FilterCore):
 
-        def get_unordered_query(self, conditions):
-            unordered_query = select(
+        def get_select_query_part(self):
+            custom_select = select(
                 self.model.id,
                 self.model.is_active,
-                func.sum(self.model.salary_from).label("salary_from"),
+                func.sum(self.model.salary_from).label("sum_salary_from"),
                 self.model.category
-            ).filter(or_(*conditions)).group_by(self.model.is_active)
-            return unordered_query
+            )
+            return custom_select
+
+        def get_group_by_query_part(self):
+            return [self.model.is_active]
 
     return CustomFilter(Vacancy, get_custom_restriction)

@@ -8,6 +8,18 @@ Supported operators, datatypes and example of work you can find below.
 ```shell
 pip install fastapi-sa-orm-filter
 ```
+### Compatibility
+v 0.2.0
+ - Python: >= 3.8
+ - Fastapi: >= 0.100
+ - Pydantic: >= 2.0.0
+ - SQLAlchemy: >= 1.4.36, < 2.1.0
+
+v 0.1.5
+ - Python: >= 3.8
+ - Fastapi: <= 0.100
+ - Pydantic: < 2.0.0
+ - SQLAlchemy: == 1.4
 
 ### Quickstart
 
@@ -78,6 +90,24 @@ select(model)
 ### Modify query for custom selection
 ```shell
 # Create a class inherited from FilterCore and rewrite 'get_unordered_query' method.
+# 0.2.0 Version
+
+class CustomFilter(FilterCore):
+
+    def get_select_query_part(self):
+        custom_select = select(
+            self.model.id,
+            self.model.is_active,
+            func.sum(self.model.salary_from).label("sum_salary_from"),
+            self.model.category
+        )
+        return custom_select
+
+    def get_group_by_query_part(self):
+        return [self.model.is_active]
+
+
+# 0.1.5 Version
 # Original method is:
 def get_unordered_query(self, conditions):
     unordered_query = select(self._model).filter(or_(*conditions))
@@ -125,7 +155,3 @@ class CustomFilter(FilterCore):
 * __not_in__
 * __not_like__
 * __not_between__
-
-#### For suggestions and questions, feel free to contact me through email 
-__zhydykalex@ukr.net__
-

@@ -15,7 +15,8 @@ requires-python = ">=3.9"
 dependencies = [
     "fastapi",
     "sqlalchemy",
-    "pydantic-sqlalchemy"
+    "pydantic",
+    "sqlalchemy-to-pydantic"
 ]
 
 [project.optional-dependencies]
@@ -25,8 +26,7 @@ test = [
     "aiosqlite",
 ]
 formatting = [
-    "flake8",
-    "black"
+    "flake8"
 ]
 
 [project.urls]
