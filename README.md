@@ -1,4 +1,7 @@
 ## FastAPI SQLAlchemy Filter 
+![ci_badge](https://github.com/OleksandrZhydyk/FastAPI-SQLAlchemy-Filters/actions/workflows/ci_filter.yml/badge.svg)
+[![Downloads](https://static.pepy.tech/badge/fastapi_sa_orm_filter)](https://pepy.tech/project/fastapi_sa_orm_filter)
+
 Package that helps to implement easy objects filtering and sorting for applications
 build on FastAPI and SQLAlchemy.
 For using you just need to define your custom filter with filtered fields and applied operators.
