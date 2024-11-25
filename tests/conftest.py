@@ -30,6 +30,7 @@ class Vacancy(Base):
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
     company: Mapped["Company"] = relationship(back_populates="vacancies")
 
+
 class Company(Base):
     __tablename__ = "companies"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -145,6 +146,7 @@ def get_custom_vacancy_filter(get_vacancy_restriction):
 
     return CustomFilter(Vacancy, get_vacancy_restriction)
 
+
 @pytest.fixture
 def get_company_restriction() -> dict:
     return {
@@ -152,6 +154,7 @@ def get_company_restriction() -> dict:
         "title": [ops.startswith, ops.eq, ops.contains],
         "salary_from": [ops.eq, ops.gt, ops.lte, ops.gte]
     }
+
 
 @pytest.fixture
 def get_company_filter(get_company_restriction):

@@ -101,7 +101,8 @@ class _FilterQueryParser:
                 model, table, field_name = self._get_relation_model(field_name)
             operator, value = condition.split("=")
         except ValueError:
-            raise SAFilterOrmException("Incorrect filter request syntax,"
+            raise SAFilterOrmException(
+                "Incorrect filter request syntax,"
                 " please use pattern :"
                 "'{field_name}__{condition}={value}{conjunction}' "
                 "or '{relation}.{field_name}__{condition}={value}{conjunction}'",

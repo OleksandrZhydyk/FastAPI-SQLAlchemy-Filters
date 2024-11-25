@@ -11,25 +11,27 @@ jobs:
         max-parallel: 4
         matrix:
           os: [ubuntu-latest]
-          python-version: ['3.9', '3.10', '3.11']
+          python-version: ['3.9', '3.10', '3.11', '3.12']
 
       steps:
-        - uses: actions/checkout@v2
+        - uses: actions/checkout@v3
         - name: Setup Python ${{ matrix.python-version }}
-          uses: actions/setup-python@v2
+          uses: actions/setup-python@v3
           with:
             python-version: ${{ matrix.python-version }}
         - name: Install dependencies
           run: |
             python3 -m pip install --upgrade pip
-            python3 -m pip install pipenv
-            pipenv install --dev --skip-lock
+            python3 -m pip install poetry
+            poetry config virtualenvs.create false
+            poetry lock
+            poetry install --no-root
         - name: Run tests
           run: |
-            pipenv run pytest -s
+            poetry run pytest -s
         - name: Run flake8
           run: |
-            pipenv run flake8 --max-line-length=120
+            poetry run flake8 --max-line-length=120
         - name: Upload coverage reports to Codecov
           uses: codecov/codecov-action@v3
           env:

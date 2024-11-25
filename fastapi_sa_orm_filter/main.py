@@ -148,7 +148,9 @@ class FilterCore:
             optional_model = self._get_optional_pydantic_model(model, pydantic_serializer)
             optional_list_model = self._get_optional_pydantic_model(model, pydantic_serializer, is_list=True)
 
-            serializers[model.__tablename__] = {"optional_model": optional_model, "optional_list_model":optional_list_model}
+            serializers[model.__tablename__] = {
+                "optional_model": optional_model, "optional_list_model": optional_list_model
+            }
 
         return serializers
 
