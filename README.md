@@ -12,7 +12,7 @@ Supported operators, datatypes and example of work you can find below.
 pip install fastapi-sa-orm-filter
 ```
 ### Compatibility
-v 0.2.0
+v 0.2.1
  - Python: >= 3.8
  - Fastapi: >= 0.100
  - Pydantic: >= 2.0.0
@@ -57,7 +57,7 @@ async def get_filtered_objects(
     return res.scalars().all()
 ```
 
-### Example of work
+### Examples of usage
 
 ```shell
 
@@ -83,6 +83,47 @@ select(model)
         ).order_by(model.id.desc(), model.category.asc())
 ```
 
+```shell
+# Filter by joined model
+
+# Input query string
+'''vacancies.salary_from__gte=100'''
+
+allowed_filter_fields = {
+    "id": [ops.eq],
+    "title": [ops.startswith, ops.eq, ops.contains],
+    "salary_from": [ops.eq, ops.gt, ops.lte, ops.gte]
+}
+
+company_filter = FilterCore(
+    Company, 
+    allowed_filter_fields, 
+    select(Company).join(Vacancy).options(joinedload(Company.vacancies))
+)
+
+@app.get("/")
+async def get_filtered_company(
+    filter_query: str = "title__eq=MyCompany&vacancies.salary_from__gte=100",
+    db: AsyncSession = Depends(get_session)
+ ) -> List[Company]:
+  
+    query = company_filter.get_query(filter_query)
+    res = await db.execute(query)
+    return res.scalars().all()
+    
+# Returned SQLAlchemy query
+select(Company)
+  .join(Vacancy)
+  .options(joinedload(Company.vacancies))
+  .where(
+    and_(
+      Company.title == "MyCompany", 
+      Vacancy.salary_from >= 100
+    )
+  )
+
+```
+
 ### Supported query string format
 
 * field_name__eq=value
@@ -93,7 +134,7 @@ select(model)
 ### Modify query for custom selection
 ```shell
 # Create a class inherited from FilterCore and rewrite 'get_unordered_query' method.
-# 0.2.0 Version
+# ^0.2.0 Version
 
 class CustomFilter(FilterCore):
 

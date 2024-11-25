@@ -2,11 +2,10 @@ from datetime import date, datetime
 
 import pytest
 import pytest_asyncio
-from pytest_asyncio import is_async_test
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, ForeignKey
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship, joinedload
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 
@@ -28,13 +27,14 @@ class Vacancy(Base):
     salary_from: Mapped[int]
     salary_up_to: Mapped[float]
     category: Mapped[JobCategory] = mapped_column(nullable=False)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
+    company: Mapped["Company"] = relationship(back_populates="vacancies")
 
-
-def pytest_collection_modifyitems(items):
-    pytest_asyncio_tests = (item for item in items if is_async_test(item))
-    session_scope_marker = pytest.mark.asyncio(scope="session")
-    for async_test in pytest_asyncio_tests:
-        async_test.add_marker(session_scope_marker)
+class Company(Base):
+    __tablename__ = "companies"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str]
+    vacancies: Mapped[list["Vacancy"]] = relationship(back_populates="company")
 
 
 @pytest.fixture(scope="session")
@@ -74,8 +74,20 @@ async def session(create_session) -> AsyncSession:
         yield session
 
 
+@pytest.fixture
+async def create_companies(session):
+    companies = []
+    for i in range(1, 3):
+        company_instance = Company(title=f"MyCompany{i}")
+        session.add(company_instance)
+        await session.commit()
+        await session.refresh(company_instance)
+        companies.append(company_instance)
+    return companies
+
+
 @pytest.fixture(scope="function")
-async def create_vacancies(session):
+async def create_vacancies(session, create_companies):
     vacancy_instances = []
     enum_category = [member.name for member in JobCategory]
     for i in range(1, 11):
@@ -87,7 +99,8 @@ async def create_vacancies(session):
             created_at=date(2023, 5, i),
             updated_at=datetime(2023, i, 5, 15, 15, 15),
             category=JobCategory[enum_category[i - 1]],
-            is_active=bool(i % 2)
+            is_active=bool(i % 2),
+            company=create_companies[(50 + i * 10)//100]
         )
         vacancy_instances.append(vacancy)
     session.add_all(vacancy_instances)
@@ -95,7 +108,7 @@ async def create_vacancies(session):
 
 
 @pytest.fixture
-def get_custom_restriction():
+def get_vacancy_restriction() -> dict:
     return {
         'title': [ops.startswith, ops.eq, ops.endswith],
         'category': [ops.startswith, ops.eq, ops.in_],
@@ -109,12 +122,12 @@ def get_custom_restriction():
 
 
 @pytest.fixture
-def get_filter(get_custom_restriction):
-    return FilterCore(Vacancy, get_custom_restriction)
+def get_vacancy_filter(get_vacancy_restriction):
+    return FilterCore(Vacancy, get_vacancy_restriction)
 
 
 @pytest.fixture
-def get_custom_filter(get_custom_restriction):
+def get_custom_vacancy_filter(get_vacancy_restriction):
 
     class CustomFilter(FilterCore):
 
@@ -130,4 +143,27 @@ def get_custom_filter(get_custom_restriction):
         def get_group_by_query_part(self):
             return [self.model.is_active]
 
-    return CustomFilter(Vacancy, get_custom_restriction)
+    return CustomFilter(Vacancy, get_vacancy_restriction)
+
+@pytest.fixture
+def get_company_restriction() -> dict:
+    return {
+        "id": [ops.eq],
+        "title": [ops.startswith, ops.eq, ops.contains],
+        "salary_from": [ops.eq, ops.gt, ops.lte, ops.gte]
+    }
+
+@pytest.fixture
+def get_company_filter(get_company_restriction):
+    return FilterCore(Company, get_company_restriction)
+
+
+@pytest.fixture
+def get_custom_company_filter(get_company_restriction):
+
+    class CustomFilter(FilterCore):
+        def get_query(self, custom_filter):
+            query = super().get_query(custom_filter)
+            return query.join(Vacancy).options(joinedload(Company.vacancies))
+
+    return CustomFilter(Company, get_company_restriction)

@@ -7,16 +7,20 @@ from tests.utils import JobCategory
 from tests.schemas import ListPydanticVacancy, ListCustomPydanticVacancy
 
 
-async def test_empty_query(session, get_filter, create_vacancies):
-    query = get_filter.get_query("")
+async def test_empty_query(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(
+        vacancies=res.scalars().all()
+    ).model_dump(exclude={"created_at", "updated_at", "company_id"})
+
     assert len(data["vacancies"]) == 10
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 1,
         "title": "title1",
@@ -28,16 +32,20 @@ async def test_empty_query(session, get_filter, create_vacancies):
     }
 
 
-async def test_eq_with_int(session, get_filter, create_vacancies):
-    query = get_filter.get_query("salary_from__eq=60")
+async def test_eq_with_int(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("salary_from__eq=60")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(
+        vacancies=res.scalars().all()
+    ).model_dump(exclude={"created_at", "updated_at", "company_id"})
+
     assert len(data["vacancies"]) == 1
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 1,
         "title": "title1",
@@ -49,16 +57,20 @@ async def test_eq_with_int(session, get_filter, create_vacancies):
     }
 
 
-async def test_eq_with_float(session, get_filter, create_vacancies):
-    query = get_filter.get_query("salary_up_to__eq=120.725")
+async def test_eq_with_float(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("salary_up_to__eq=120.725")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(
+        vacancies=res.scalars().all()
+    ).model_dump(exclude={"created_at", "updated_at", "company_id"})
+
     assert len(data["vacancies"]) == 1
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 2,
         "title": "title2",
@@ -70,8 +82,8 @@ async def test_eq_with_float(session, get_filter, create_vacancies):
     }
 
 
-async def test_in_with_str(session, get_filter, create_vacancies):
-    query = get_filter.get_query("description__in_=description1,description2")
+async def test_in_with_str(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("description__in_=description1,description2")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 2
@@ -80,6 +92,7 @@ async def test_in_with_str(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 1,
         "title": "title1",
@@ -91,8 +104,8 @@ async def test_in_with_str(session, get_filter, create_vacancies):
     }
 
 
-async def test_contains_with_str(session, get_filter, create_vacancies):
-    query = get_filter.get_query("description__contains=tion1")
+async def test_contains_with_str(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("description__contains=tion1")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 2
@@ -101,6 +114,7 @@ async def test_contains_with_str(session, get_filter, create_vacancies):
     check_data = data["vacancies"][-1].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 10,
         "title": "title10",
@@ -112,8 +126,8 @@ async def test_contains_with_str(session, get_filter, create_vacancies):
     }
 
 
-async def test_endswith_with_str(session, get_filter, create_vacancies):
-    query = get_filter.get_query("title__endswith=le1")
+async def test_endswith_with_str(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("title__endswith=le1")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 1
@@ -122,6 +136,7 @@ async def test_endswith_with_str(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 1,
         "title": "title1",
@@ -133,8 +148,8 @@ async def test_endswith_with_str(session, get_filter, create_vacancies):
     }
 
 
-async def test_in_with_int(session, get_filter, create_vacancies):
-    query = get_filter.get_query("salary_from__in_=60,70,80")
+async def test_in_with_int(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("salary_from__in_=60,70,80")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 3
@@ -143,6 +158,7 @@ async def test_in_with_int(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 1,
         "title": "title1",
@@ -154,8 +170,8 @@ async def test_in_with_int(session, get_filter, create_vacancies):
     }
 
 
-async def test_gte_with_int(session, get_filter, create_vacancies):
-    query = get_filter.get_query("salary_from__gte=120")
+async def test_gte_with_int(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("salary_from__gte=120")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 4
@@ -164,6 +180,7 @@ async def test_gte_with_int(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 7,
         "title": "title7",
@@ -175,8 +192,8 @@ async def test_gte_with_int(session, get_filter, create_vacancies):
     }
 
 
-async def test_not_eq_with_date(session, get_filter, create_vacancies):
-    query = get_filter.get_query("created_at__not_eq=2023-05-01")
+async def test_not_eq_with_date(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("created_at__not_eq=2023-05-01")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 9
@@ -185,6 +202,7 @@ async def test_not_eq_with_date(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 2,
         "title": "title2",
@@ -196,8 +214,8 @@ async def test_not_eq_with_date(session, get_filter, create_vacancies):
     }
 
 
-async def test_eq_with_bool(session, get_filter, create_vacancies):
-    query = get_filter.get_query("is_active__eq=true")
+async def test_eq_with_bool(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("is_active__eq=true")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 5
@@ -206,6 +224,7 @@ async def test_eq_with_bool(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 1,
         "title": "title1",
@@ -217,8 +236,8 @@ async def test_eq_with_bool(session, get_filter, create_vacancies):
     }
 
 
-async def test_between_with_int(session, get_filter, create_vacancies):
-    query = get_filter.get_query("salary_from__between=50,90")
+async def test_between_with_int(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("salary_from__between=50,90")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 4
@@ -227,6 +246,7 @@ async def test_between_with_int(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 1,
         "title": "title1",
@@ -238,8 +258,8 @@ async def test_between_with_int(session, get_filter, create_vacancies):
     }
 
 
-async def test_between_with_datetime(session, get_filter, create_vacancies):
-    query = get_filter.get_query("updated_at__between=2023-01-01 00:00:00,2023-05-01 00:00:00")
+async def test_between_with_datetime(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("updated_at__between=2023-01-01 00:00:00,2023-05-01 00:00:00")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 4
@@ -248,6 +268,7 @@ async def test_between_with_datetime(session, get_filter, create_vacancies):
     check_data = data["vacancies"][-1].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 4,
         "title": "title4",
@@ -259,8 +280,8 @@ async def test_between_with_datetime(session, get_filter, create_vacancies):
     }
 
 
-async def test_between_with_date(session, get_filter, create_vacancies):
-    query = get_filter.get_query("created_at__between=2023-05-01,2023-05-05")
+async def test_between_with_date(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("created_at__between=2023-05-01,2023-05-05")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 5
@@ -269,6 +290,7 @@ async def test_between_with_date(session, get_filter, create_vacancies):
     check_data = data["vacancies"][-1].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 5,
         "title": "title5",
@@ -280,8 +302,8 @@ async def test_between_with_date(session, get_filter, create_vacancies):
     }
 
 
-async def test_gt_with_int(session, get_filter, create_vacancies):
-    query = get_filter.get_query("salary_from__gt=100")
+async def test_gt_with_int(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("salary_from__gt=100")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 5
@@ -290,6 +312,7 @@ async def test_gt_with_int(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 6,
         "title": "title6",
@@ -301,8 +324,8 @@ async def test_gt_with_int(session, get_filter, create_vacancies):
     }
 
 
-async def test_enum_with_str(session, get_filter, create_vacancies):
-    query = get_filter.get_query("category__eq=Medicine")
+async def test_enum_with_str(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("category__eq=Medicine")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 1
@@ -311,6 +334,7 @@ async def test_enum_with_str(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 6,
         "title": "title6",
@@ -322,8 +346,8 @@ async def test_enum_with_str(session, get_filter, create_vacancies):
     }
 
 
-async def test_complex_query(session, get_filter, create_vacancies):
-    query = get_filter.get_query(
+async def test_complex_query(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query(
         "created_at__between=2023-05-01,2023-05-05&"
         "updated_at__in_=2023-01-05 15:15:15,2023-05-05 15:15:15|"
         "salary_from__gt=100"
@@ -336,6 +360,7 @@ async def test_complex_query(session, get_filter, create_vacancies):
     check_data = data["vacancies"][1].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 5,
         "title": "title5",
@@ -347,8 +372,8 @@ async def test_complex_query(session, get_filter, create_vacancies):
     }
 
 
-async def test_complex_query_with_order_by(session, get_filter, create_vacancies):
-    query = get_filter.get_query(
+async def test_complex_query_with_order_by(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query(
         "created_at__between=2023-05-01,2023-05-05&"
         "updated_at__in_=2023-01-05 15:15:15,2023-05-05 15:15:15|"
         "salary_from__gt=100&"
@@ -362,6 +387,7 @@ async def test_complex_query_with_order_by(session, get_filter, create_vacancies
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 10,
         "title": "title10",
@@ -373,8 +399,8 @@ async def test_complex_query_with_order_by(session, get_filter, create_vacancies
     }
 
 
-async def test_order_by_id(session, get_filter, create_vacancies):
-    query = get_filter.get_query("order_by=-id")
+async def test_order_by_id(session, get_vacancy_filter, create_vacancies):
+    query = get_vacancy_filter.get_query("order_by=-id")
     res = await session.execute(query)
     data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
     assert len(data["vacancies"]) == 10
@@ -383,6 +409,7 @@ async def test_order_by_id(session, get_filter, create_vacancies):
     check_data = data["vacancies"][0].copy()
     del check_data["created_at"]
     del check_data["updated_at"]
+    del check_data["company_id"]
     assert check_data == {
         "id": 10,
         "title": "title10",
@@ -394,8 +421,8 @@ async def test_order_by_id(session, get_filter, create_vacancies):
     }
 
 
-async def test_custom_query(session, get_custom_filter, create_vacancies):
-    query = get_custom_filter.get_query("")
+async def test_custom_query(session, get_custom_vacancy_filter, create_vacancies):
+    query = get_custom_vacancy_filter.get_query("")
     res = await session.execute(query)
     data = ListCustomPydanticVacancy(vacancies=res.all()).model_dump(exclude_none=True)
     assert len(data["vacancies"]) == 2
@@ -408,8 +435,8 @@ async def test_custom_query(session, get_custom_filter, create_vacancies):
     }
 
 
-async def test_custom_complex_query(session, get_custom_filter, create_vacancies):
-    query = get_custom_filter.get_query(
+async def test_custom_complex_query(session, get_custom_vacancy_filter, create_vacancies):
+    query = get_custom_vacancy_filter.get_query(
         "created_at__between=2023-05-01,2023-05-05&"
         "updated_at__in_=2023-01-05 15:15:15,2023-05-05 15:15:15|"
         "salary_from__gt=100&"
@@ -448,27 +475,28 @@ async def test_custom_complex_query(session, get_custom_filter, create_vacancies
                     "type": "int_parsing",
                     "loc": ["salary_from"],
                     "msg": "Input should be a valid integer, unable to parse string as an integer",
-                    "input": "",
-                    "url": "https://errors.pydantic.dev/2.5/v/int_parsing"
+                    "input": ""
                 }
             ]
         ),
         (
             "salary__eq=100",
             HTTP_400_BAD_REQUEST,
-            "DB model <class 'conftest.Vacancy'> doesn't have field 'salary'"
+            "DB model Vacancy doesn't have field 'salary'"
         ),
         (
             "salary_from_eq=100",
             HTTP_400_BAD_REQUEST,
             "Incorrect filter request syntax, "
-            "please use pattern :'{field_name}__{condition}={value}{conjunction}'"
+            "please use pattern :'{field_name}__{condition}={value}{conjunction}' "
+            "or '{relation}.{field_name}__{condition}={value}{conjunction}'"
         ),
         (
             "salary_from__eq-100",
             HTTP_400_BAD_REQUEST,
             "Incorrect filter request syntax, "
-            "please use pattern :'{field_name}__{condition}={value}{conjunction}'"
+            "please use pattern :'{field_name}__{condition}={value}{conjunction}' "
+            "or '{relation}.{field_name}__{condition}={value}{conjunction}'"
         ),
         (
             "category__eq=Unknown_category",
@@ -483,8 +511,7 @@ async def test_custom_complex_query(session, get_custom_filter, create_vacancies
                     "ctx": {
                         "expected": "'Finance', 'Marketing', 'Agriculture', 'IT', 'Metallurgy', 'Medicine', "
                                     "'Construction', 'Building', 'Services' or 'Miscellaneous'"
-                    },
-                    "url": r"https://errors.pydantic.dev/2.5/v/enum"
+                    }
                 }
 
             ]
@@ -495,7 +522,8 @@ async def test_custom_complex_query(session, get_custom_filter, create_vacancies
             "salary_from__gt=100",
             HTTP_400_BAD_REQUEST,
             "Incorrect filter request syntax, "
-            "please use pattern :'{field_name}__{condition}={value}{conjunction}'"
+            "please use pattern :'{field_name}__{condition}={value}{conjunction}' "
+            "or '{relation}.{field_name}__{condition}={value}{conjunction}'"
         ),
         (
             "is_active__eq=100",
@@ -505,8 +533,7 @@ async def test_custom_complex_query(session, get_custom_filter, create_vacancies
                     "type": "bool_parsing",
                     "loc": ["is_active"],
                     "msg": "Input should be a valid boolean, unable to interpret input",
-                    "input": "100",
-                    "url": "https://errors.pydantic.dev/2.5/v/bool_parsing"
+                    "input": "100"
                 }
             ]
         ),
@@ -514,18 +541,71 @@ async def test_custom_complex_query(session, get_custom_filter, create_vacancies
             "salary_up_to__eq=100/12",
             HTTP_400_BAD_REQUEST,
             [
-                {"type": "float_parsing",
-                 "loc": ["salary_up_to"],
-                 "msg": "Input should be a valid number, unable to parse string as a number",
-                 "input": "100/12",
-                 "url": "https://errors.pydantic.dev/2.5/v/float_parsing"}
+                {
+                    "type": "float_parsing",
+                    "loc": ["salary_up_to"],
+                    "msg": "Input should be a valid number, unable to parse string as a number",
+                    "input": "100/12"
+                }
             ]
         ),
     )
 )
-def test_fail_filter(get_filter, bad_filter, expected_status_code, expected_detail):
-    with pytest.raises(Exception) as e:
-        get_filter.get_query(bad_filter)
+def test_fail_filter(get_vacancy_filter, bad_filter, expected_status_code, expected_detail):
+    with pytest.raises(HTTPException) as e:
+        get_vacancy_filter.get_query(bad_filter)
     assert e.type == HTTPException
     assert e.value.status_code == expected_status_code
-    assert e.value.detail == expected_detail
+
+    errors_details = e.value.detail
+
+    if isinstance(errors_details, list):
+        for detail in errors_details:
+            detail.pop("url")
+
+    assert errors_details == expected_detail
+
+
+async def test_relation_search(session, get_custom_company_filter, create_vacancies):
+    query = get_custom_company_filter.get_query("title__eq=MyCompany2&vacancies.salary_from__gte=100")
+    res = await session.execute(query)
+    companies = res.unique().scalars().all()
+
+    assert len(companies) == 1
+    assert len(companies[0].vacancies) == 6
+
+    company = companies[0]
+    assert company.id == 2
+    assert company.title == "MyCompany2"
+
+
+@pytest.mark.parametrize(
+    "bad_filter, expected_status_code, expected_detail",
+    (
+        (
+            "unknown.vacancies.salary_from__gte=100",
+            HTTP_400_BAD_REQUEST,
+            "Incorrect filter request syntax, "
+            "please use pattern :'{field_name}__{condition}={value}{conjunction}' "
+            "or '{relation}.{field_name}__{condition}={value}{conjunction}'"
+        ),
+        (
+            "unknown.salary_from__gte=100",
+            HTTP_400_BAD_REQUEST,
+            "Can not find relation unknown in Company model"
+        ),
+    )
+)
+def test_fail_relation_filter(get_custom_company_filter, bad_filter, expected_status_code, expected_detail):
+    with pytest.raises(HTTPException) as e:
+        get_custom_company_filter.get_query(bad_filter)
+    assert e.type == HTTPException
+    assert e.value.status_code == expected_status_code
+
+    errors_details = e.value.detail
+
+    if isinstance(errors_details, list):
+        for detail in errors_details:
+            detail.pop("url")
+
+    assert errors_details == expected_detail

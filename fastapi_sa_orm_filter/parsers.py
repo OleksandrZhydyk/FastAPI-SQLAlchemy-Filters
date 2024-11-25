@@ -1,10 +1,11 @@
-from typing import Optional, Tuple, Union, List, Any, Type, Dict
+from typing import Optional, Tuple, Union, List, Any, Type
 
 from fastapi import HTTPException
+from sqlalchemy import inspect
 from sqlalchemy.orm import InstrumentedAttribute, DeclarativeMeta
 from sqlalchemy.sql.elements import UnaryExpression
-from starlette import status
 
+from fastapi_sa_orm_filter.exceptions import SAFilterOrmException
 from fastapi_sa_orm_filter.operators import Operators as ops
 from fastapi_sa_orm_filter.operators import Sequence
 
@@ -28,7 +29,7 @@ class _OrderByQueryParser:
                 order_by_query.append(getattr(column, Sequence.asc)())
         return order_by_query
 
-    def _validate_order_by_fields(self, order_by_query_str: str) -> List[str]:
+    def _validate_order_by_fields(self, order_by_query_str: str) -> list[str]:
         """
         :return:
             [
@@ -42,10 +43,7 @@ class _OrderByQueryParser:
             field = field.strip('+').strip('-')
             if field in model_fields:
                 continue
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Incorrect order_by field name {field} for model {self._model}",
-            )
+            raise SAFilterOrmException(f"Incorrect order_by field name {field} for model {self._model.__name__}")
         return order_by_fields
 
 
@@ -54,12 +52,13 @@ class _FilterQueryParser:
     Class parse filter part of request query string.
     """
 
-    def __init__(self, query: str, model: Type[DeclarativeMeta], allowed_filters: Dict[str, List[ops]]) -> None:
+    def __init__(self, query: str, model: Type[DeclarativeMeta], allowed_filters: dict[str, list[ops]]) -> None:
         self._query = query
         self._model = model
+        self._relationships = inspect(model).relationships.items()
         self._allowed_filters = allowed_filters
 
-    def get_parsed_query(self) -> List[List[Any]]:
+    def get_parsed_query(self) -> list[list[Any]]:
         """
         :return:
             [
@@ -72,13 +71,13 @@ class _FilterQueryParser:
         for and_block in and_blocks:
             parsed_and_blocks = []
             for expression in and_block:
-                column, operator, value = self._parse_expression(expression)
+                table, column, operator, value = self._parse_expression(expression)
                 self._validate_query_params(column.name, operator)
-                parsed_and_blocks.append([column, operator, value])
+                parsed_and_blocks.append([table, column, operator, value])
             parsed_query.append(parsed_and_blocks)
         return parsed_query
 
-    def _parse_by_conjunctions(self) -> List[List[str]]:
+    def _parse_by_conjunctions(self) -> list[list[str]]:
         """
         Split request query string by 'OR' and 'AND' conjunctions
         to divide query string to field's conditions
@@ -93,25 +92,33 @@ class _FilterQueryParser:
 
     def _parse_expression(
         self, expression: str
-    ) -> Union[Tuple[InstrumentedAttribute, str, str], HTTPException]:
+    ) -> Union[Tuple[str, InstrumentedAttribute, str, str], HTTPException]:
+        model = self._model
+        table = self._model.__tablename__
         try:
             field_name, condition = expression.split("__")
+            if "." in field_name:
+                model, table, field_name = self._get_relation_model(field_name)
             operator, value = condition.split("=")
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Incorrect filter request syntax,"
+        except ValueError:
+            raise SAFilterOrmException("Incorrect filter request syntax,"
                 " please use pattern :"
-                "'{field_name}__{condition}={value}{conjunction}'",
+                "'{field_name}__{condition}={value}{conjunction}' "
+                "or '{relation}.{field_name}__{condition}={value}{conjunction}'",
             )
-        if not hasattr(self._model, field_name):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"DB model {self._model} doesn't have field '{field_name}'",
-            )
-        else:
-            column = getattr(self._model, field_name)
-        return column, operator, value
+
+        column = getattr(model, field_name, None)
+
+        if not column:
+            raise SAFilterOrmException(f"DB model {model.__name__} doesn't have field '{field_name}'")
+        return table, column, operator, value
+
+    def _get_relation_model(self, field_name: str) -> tuple:
+        relation, field_name = field_name.split(".")
+        for relationship in self._relationships:
+            if relationship[0] == relation:
+                return relationship[1].mapper.class_, relation, field_name
+        raise SAFilterOrmException(f"Can not find relation {relation} in {self._model.__name__} model")
 
     def _validate_query_params(
         self, field_name: str, operator: str
@@ -120,14 +127,8 @@ class _FilterQueryParser:
         Check expression on valid and allowed field_name and operator
         """
         if field_name not in self._allowed_filters:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Forbidden filter field '{field_name}'",
-            )
+            raise SAFilterOrmException(f"Forbidden filter field '{field_name}'")
         for allow_filter in self._allowed_filters[field_name]:
             if operator == allow_filter.name:
                 return
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Forbidden filter '{operator}' for '{field_name}'",
-        )
+        raise SAFilterOrmException(f"Forbidden filter '{operator}' for '{field_name}'")

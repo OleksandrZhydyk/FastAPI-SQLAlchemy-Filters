@@ -1,0 +1,4 @@
+.idea
+__pychache__/
+.env
+dist

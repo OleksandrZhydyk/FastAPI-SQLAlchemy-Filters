@@ -1,3 +1,24 @@
+[tool.poetry]
+name = "fastapi-sqlalchemy-filters"
+version = "0.2.1"
+description = ""
+authors = ["Alexandr Zhydyk <zhydykalex@ukr.net>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115.5"
+sqlalchemy = "^2.0.36"
+sqlalchemy-to-pydantic = "^0.0.8"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
+aiosqlite = "^0.20.0"
+flit = "^3.10.1"
+
+
 [build-system]
 requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
@@ -5,10 +26,10 @@ build-backend = "flit_core.buildapi"
 [project]
 name = "fastapi-sa-orm-filter"
 authors = [{name = "Oleksandr Zhydyk", email = "zhydykalex@ukr.net"}]
+dynamic = ["version", "description"]
 readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
-dynamic = ["version", "description"]
 
 requires-python = ">=3.9"
 
@@ -19,21 +40,6 @@ dependencies = [
     "sqlalchemy-to-pydantic"
 ]
 
-[project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-asyncio",
-    "aiosqlite",
-]
-formatting = [
-    "flake8"
-]
-
 [project.urls]
 Home = "https://github.com/OleksandrZhydyk/FastAPI-SQLAlchemy-Filters"
-
-[tool.pytest.ini_options]
-addopts = "--cov --cov-report html --cov-report term-missing --cov-fail-under 95"
-
-[tool.coverage.run]
-source = ["fastapi-sqlalchemy-filter"]
+Issues = "https://github.com/OleksandrZhydyk/FastAPI-SQLAlchemy-Filters/issues"

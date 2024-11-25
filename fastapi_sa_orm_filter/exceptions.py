@@ -1,0 +1,2 @@
+class SAFilterOrmException(Exception):
+    pass
