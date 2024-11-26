@@ -2,7 +2,7 @@ from typing import Optional, Tuple, Union, List, Any, Type
 
 from fastapi import HTTPException
 from sqlalchemy import inspect
-from sqlalchemy.orm import InstrumentedAttribute, DeclarativeMeta
+from sqlalchemy.orm import InstrumentedAttribute, DeclarativeBase
 from sqlalchemy.sql.elements import UnaryExpression
 
 from fastapi_sa_orm_filter.exceptions import SAFilterOrmException
@@ -14,7 +14,7 @@ class _OrderByQueryParser:
     """
     Class parse order by part of request query string.
     """
-    def __init__(self, model: Type[DeclarativeMeta]) -> None:
+    def __init__(self, model: Type[DeclarativeBase]) -> None:
         self._model = model
 
     def get_order_by_query(self, order_by_query_str: str) -> List[UnaryExpression]:
@@ -52,7 +52,7 @@ class _FilterQueryParser:
     Class parse filter part of request query string.
     """
 
-    def __init__(self, query: str, model: Type[DeclarativeMeta], allowed_filters: dict[str, list[ops]]) -> None:
+    def __init__(self, query: str, model: Type[DeclarativeBase], allowed_filters: dict[str, list[ops]]) -> None:
         self._query = query
         self._model = model
         self._relationships = inspect(model).relationships.items()
@@ -114,11 +114,12 @@ class _FilterQueryParser:
             raise SAFilterOrmException(f"DB model {model.__name__} doesn't have field '{field_name}'")
         return table, column, operator, value
 
-    def _get_relation_model(self, field_name: str) -> tuple:
+    def _get_relation_model(self, field_name: str) -> tuple[DeclarativeBase, str, str]:
         relation, field_name = field_name.split(".")
         for relationship in self._relationships:
             if relationship[0] == relation:
-                return relationship[1].mapper.class_, relation, field_name
+                model = relationship[1].mapper.class_
+                return model, model.__tablename__, field_name
         raise SAFilterOrmException(f"Can not find relation {relation} in {self._model.__name__} model")
 
     def _validate_query_params(

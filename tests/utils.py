@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class JobCategory(str, Enum):
+class JobCategory(Enum):
     finance = "Finance"
     marketing = "Marketing"
     agro = "Agriculture"

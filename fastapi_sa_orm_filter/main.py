@@ -8,7 +8,7 @@ from pydantic import create_model
 from pydantic._internal._model_construction import ModelMetaclass
 from sqlalchemy_to_pydantic import sqlalchemy_to_pydantic
 from sqlalchemy import select, inspect
-from sqlalchemy.orm import InstrumentedAttribute, DeclarativeMeta
+from sqlalchemy.orm import InstrumentedAttribute, DeclarativeBase
 from sqlalchemy.sql.elements import BinaryExpression, UnaryExpression
 from sqlalchemy.sql.expression import and_, or_
 from starlette import status
@@ -27,9 +27,9 @@ class FilterCore:
 
     def __init__(
         self,
-        model: Type[DeclarativeMeta],
+        model: Type[DeclarativeBase],
         allowed_filters: dict[str, list[ops]],
-        select_query_part: Select[Any] = None
+        select_query_part: Select[Any] | None = None
     ) -> None:
         """
         Produce a class:`FilterCore` object against a function
@@ -57,6 +57,7 @@ class FilterCore:
             created_at__between=2023-05-01,2023-05-05|
             category__eq=Medicine&
             order_by=-id
+        :param select_query_part: custom select query part (select(model).join(model1))
 
         :return:
             select(model)
@@ -69,16 +70,16 @@ class FilterCore:
                         model.category == 'Medicine'
                     ).order_by(model.id.desc())
         """
-        split_query = self.split_by_order_by(custom_filter)
+        split_query = self._split_by_order_by(custom_filter)
         try:
-            complete_query = self.get_complete_query(*split_query)
+            complete_query = self._get_complete_query(*split_query)
         except SAFilterOrmException as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.args[0])
         return complete_query
 
-    def get_complete_query(self, filter_query_str: str, order_by_query_str: str | None = None) -> Select[Any]:
+    def _get_complete_query(self, filter_query_str: str, order_by_query_str: str | None = None) -> Select[Any]:
         select_query_part = self.get_select_query_part()
-        filter_query_part = self.get_filter_query_part(filter_query_str)
+        filter_query_part = self._get_filter_query_part(filter_query_str)
         complete_query = select_query_part.filter(*filter_query_part)
         group_query_part = self.get_group_by_query_part()
         if group_query_part:
@@ -89,11 +90,11 @@ class FilterCore:
         return complete_query
 
     def get_select_query_part(self) -> Select[Any]:
-        if self.select_query_part:
+        if self.select_query_part is not None:
             return self.select_query_part
         return select(self.model)
 
-    def get_filter_query_part(self, filter_query_str: str) -> list[Any]:
+    def _get_filter_query_part(self, filter_query_str: str) -> list[Any]:
         conditions = self._get_filter_query(filter_query_str)
         if len(conditions) == 0:
             return conditions
@@ -123,7 +124,7 @@ class FilterCore:
             filter_conditions.append(and_(*and_condition))
         return filter_conditions
 
-    def _create_pydantic_serializers(self) -> dict[str, ModelMetaclass]:
+    def _create_pydantic_serializers(self) -> dict[str, dict[str, ModelMetaclass]]:
         """
         Create two pydantic models (optional and list field types)
         for value: str serialization
@@ -139,7 +140,7 @@ class FilterCore:
         """
 
         models = [self.model]
-        models.extend(self.get_relations())
+        models.extend(self._get_relations())
 
         serializers = {}
 
@@ -154,7 +155,7 @@ class FilterCore:
 
         return serializers
 
-    def get_relations(self) -> list:
+    def _get_relations(self) -> list:
         return [relation[1].mapper.class_ for relation in self.relationships]
 
     def _get_orm_for_field(
@@ -192,7 +193,7 @@ class FilterCore:
             raise SAFilterOrmException(f"Incorrect filter value '{value}'")
 
     @staticmethod
-    def split_by_order_by(query) -> list:
+    def _split_by_order_by(query) -> list:
         split_query = [query_part.strip("&") for query_part in query.split("order_by=")]
         if len(split_query) > 2:
             raise SAFilterOrmException("Use only one order_by directive")
