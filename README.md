@@ -1,6 +1,8 @@
 ## FastAPI SQLAlchemy Filter 
 ![ci_badge](https://github.com/OleksandrZhydyk/FastAPI-SQLAlchemy-Filters/actions/workflows/ci_filter.yml/badge.svg)
 [![Downloads](https://static.pepy.tech/badge/fastapi_sa_orm_filter)](https://pepy.tech/project/fastapi_sa_orm_filter)
+[![PyPI version](https://img.shields.io/pypi/v/fastapi-sa-orm-filter.svg)](https://pypi.org/project/fastapi-sa-orm-filter/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Package that helps to implement easy objects filtering and sorting for applications
 build on FastAPI and SQLAlchemy.
@@ -13,7 +15,7 @@ pip install fastapi-sa-orm-filter
 ```
 ### Compatibility
 v 0.2.1
- - Python: >= 3.8
+ - Python: >= 3.10
  - Fastapi: >= 0.100
  - Pydantic: >= 2.0.0
  - SQLAlchemy: >= 1.4.36, < 2.1.0
