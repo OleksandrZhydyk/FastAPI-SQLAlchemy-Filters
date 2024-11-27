@@ -17,7 +17,7 @@ Base = declarative_base()
 
 
 class Vacancy(Base):
-    __tablename__ = "vacancies"
+    __tablename__ = "vacancy"
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str]
     description: Mapped[str]
@@ -27,12 +27,12 @@ class Vacancy(Base):
     salary_from: Mapped[int]
     salary_up_to: Mapped[float]
     category: Mapped[JobCategory] = mapped_column(nullable=False)
-    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
+    company_id: Mapped[int] = mapped_column(ForeignKey("company.id"))
     company: Mapped["Company"] = relationship(back_populates="vacancies")
 
 
 class Company(Base):
-    __tablename__ = "companies"
+    __tablename__ = "company"
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str]
     vacancies: Mapped[list["Vacancy"]] = relationship(back_populates="company")
@@ -51,7 +51,7 @@ def database_url(sqlite_file_path) -> str:
 
 @pytest.fixture(scope="session")
 def create_engine(database_url):
-    return create_async_engine(database_url, echo=True, future=True)
+    return create_async_engine(database_url, echo=False, future=True)
 
 
 @pytest.fixture(scope="session")
@@ -126,6 +126,10 @@ def get_vacancy_restriction() -> dict:
 def get_vacancy_filter(get_vacancy_restriction):
     return FilterCore(Vacancy, get_vacancy_restriction)
 
+@pytest.fixture
+def get_vacancy_filter_with_join(get_vacancy_restriction):
+    return FilterCore(Vacancy, get_vacancy_restriction, select(Vacancy).join(Company))
+
 
 @pytest.fixture
 def get_custom_vacancy_filter(get_vacancy_restriction):
@@ -170,3 +174,12 @@ def get_custom_company_filter(get_company_restriction):
             return query.join(Vacancy).options(joinedload(Company.vacancies))
 
     return CustomFilter(Company, get_company_restriction)
+
+@pytest.fixture
+def get_filter_passed_in_init(get_company_restriction):
+    return FilterCore(
+        Company,
+        get_company_restriction,
+        select(Company).join(Vacancy)
+    )
+

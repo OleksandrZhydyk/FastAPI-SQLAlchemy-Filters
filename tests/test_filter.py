@@ -579,6 +579,18 @@ async def test_relation_search(session, get_custom_company_filter, create_vacanc
     assert company.title == "MyCompany2"
 
 
+async def test_pass_custom_select_into_init(session, get_filter_passed_in_init, create_vacancies):
+    query = get_filter_passed_in_init.get_query("title__eq=MyCompany2&vacancies.salary_from__gte=100")
+    res = await session.execute(query)
+    companies = res.unique().scalars().all()
+
+    assert len(companies) == 1
+
+    company = companies[0]
+    assert company.id == 2
+    assert company.title == "MyCompany2"
+
+
 @pytest.mark.parametrize(
     "bad_filter, expected_status_code, expected_detail",
     (
@@ -609,3 +621,14 @@ def test_fail_relation_filter(get_custom_company_filter, bad_filter, expected_st
             detail.pop("url")
 
     assert errors_details == expected_detail
+
+
+async def test_reverse_relation(session, get_vacancy_filter_with_join, create_vacancies):
+    query = get_vacancy_filter_with_join.get_query("company.title__eq=MyCompany1")
+    res = await session.execute(query)
+    vacancies = res.unique().scalars().all()
+
+    assert len(vacancies) == 4
+    vacancy = vacancies[0]
+    assert vacancy.id == 1
+    assert vacancy.company_id == 1
