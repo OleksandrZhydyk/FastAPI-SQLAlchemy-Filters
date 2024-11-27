@@ -126,6 +126,7 @@ def get_vacancy_restriction() -> dict:
 def get_vacancy_filter(get_vacancy_restriction):
     return FilterCore(Vacancy, get_vacancy_restriction)
 
+
 @pytest.fixture
 def get_vacancy_filter_with_join(get_vacancy_restriction):
     return FilterCore(Vacancy, get_vacancy_restriction, select(Vacancy).join(Company))
@@ -175,6 +176,7 @@ def get_custom_company_filter(get_company_restriction):
 
     return CustomFilter(Company, get_company_restriction)
 
+
 @pytest.fixture
 def get_filter_passed_in_init(get_company_restriction):
     return FilterCore(
@@ -182,4 +184,3 @@ def get_filter_passed_in_init(get_company_restriction):
         get_company_restriction,
         select(Company).join(Vacancy)
     )
-
