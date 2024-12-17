@@ -114,7 +114,7 @@ def get_vacancy_restriction() -> dict:
         'title': [ops.startswith, ops.eq, ops.endswith],
         'category': [ops.startswith, ops.eq, ops.in_],
         'salary_from': [ops.between, ops.eq, ops.gt, ops.lt, ops.in_, ops.gte],
-        'salary_up_to': [ops.eq, ops.gt],
+        'salary_up_to': [ops.eq, ops.gt, ops.lt],
         'description': [ops.like, ops.not_like, ops.contains, ops.eq, ops.in_],
         'created_at': [ops.between, ops.in_, ops.eq, ops.gt, ops.lt, ops.not_eq],
         'updated_at': [ops.between, ops.in_, ops.eq, ops.gt, ops.lt],

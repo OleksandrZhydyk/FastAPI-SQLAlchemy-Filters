@@ -372,6 +372,31 @@ async def test_complex_query(session, get_vacancy_filter, create_vacancies):
     }
 
 
+async def test_several_or_in_query(session, get_vacancy_filter, create_vacancies):
+    created_between = ["2023-05-01", "2023-05-05"]
+    created_pattern = "%Y-%m-%d"
+    updated_in = ["2023-01-05 15:15:15", "2023-05-05 15:15:15"]
+    updated_pattern = "%Y-%m-%d %H:%M:%S"
+    salary = 120
+
+    query = get_vacancy_filter.get_query(
+        f"created_at__between={created_between[0]},{created_between[1]}|"
+        f"updated_at__in_={updated_in[0]},{updated_in[1]}|"
+        f"salary_up_to__lt={salary}"
+    )
+    res = await session.execute(query)
+    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    assert len(data["vacancies"]) == 5
+
+    for vacancy in data["vacancies"]:
+        assert (
+            datetime.strptime(created_between[0], created_pattern).date() < vacancy["created_at"] < datetime.strptime(created_between[1], created_pattern).date()
+            or vacancy["salary_up_to"] < salary
+            or vacancy["updated_at"] == datetime.strptime(updated_in[0], updated_pattern)
+            or vacancy["updated_at"] == datetime.strptime(updated_in[1], updated_pattern)
+        )
+
+
 async def test_complex_query_with_order_by(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query(
         "created_at__between=2023-05-01,2023-05-05&"
