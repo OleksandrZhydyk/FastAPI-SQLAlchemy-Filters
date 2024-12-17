@@ -390,7 +390,9 @@ async def test_several_or_in_query(session, get_vacancy_filter, create_vacancies
 
     for vacancy in data["vacancies"]:
         assert (
-            datetime.strptime(created_between[0], created_pattern).date() < vacancy["created_at"] < datetime.strptime(created_between[1], created_pattern).date()
+            datetime.strptime(created_between[0], created_pattern).date() <
+            vacancy["created_at"] <
+            datetime.strptime(created_between[1], created_pattern).date()
             or vacancy["salary_up_to"] < salary
             or vacancy["updated_at"] == datetime.strptime(updated_in[0], updated_pattern)
             or vacancy["updated_at"] == datetime.strptime(updated_in[1], updated_pattern)
