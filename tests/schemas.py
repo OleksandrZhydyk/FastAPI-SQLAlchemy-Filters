@@ -1,5 +1,3 @@
-from typing import List
-
 from pydantic import ConfigDict, BaseModel
 from sqlalchemy_to_pydantic import sqlalchemy_to_pydantic
 
@@ -19,8 +17,8 @@ class CustomPydanticVacancy(BaseModel):
 
 
 class ListPydanticVacancy(BaseModel):
-    vacancies: List[PydanticVacancy] = []
+    vacancies: list[PydanticVacancy]
 
 
 class ListCustomPydanticVacancy(BaseModel):
-    vacancies: List[CustomPydanticVacancy] = []
+    vacancies: list[CustomPydanticVacancy]

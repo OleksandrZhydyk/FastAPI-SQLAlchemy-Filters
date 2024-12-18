@@ -118,7 +118,8 @@ def get_vacancy_restriction() -> dict:
         'description': [ops.like, ops.not_like, ops.contains, ops.eq, ops.in_],
         'created_at': [ops.between, ops.in_, ops.eq, ops.gt, ops.lt, ops.not_eq],
         'updated_at': [ops.between, ops.in_, ops.eq, ops.gt, ops.lt],
-        'is_active': [ops.eq]
+        'is_active': [ops.eq],
+        'salary': [ops.eq]
     }
 
 

@@ -31,8 +31,7 @@ v 0.1.5
 ```shell
 from fastapi import FastAPI
 from fastapi.params import Query
-from fastapi_sa_orm_filter.main import FilterCore
-from fastapi_sa_orm_filter.operators import Operators as ops
+from fastapi_sa_orm_filter import FilterCore, ops
 
 from db.base import get_session
 from db.models import MyModel

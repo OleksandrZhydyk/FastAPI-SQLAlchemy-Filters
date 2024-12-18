@@ -1,23 +1,20 @@
-from typing import Optional, Tuple, Union, List, Any, Type
-
-from fastapi import HTTPException
-from sqlalchemy import inspect
-from sqlalchemy.orm import InstrumentedAttribute, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.elements import UnaryExpression
 
+from fastapi_sa_orm_filter.dto import ParsedFilter
 from fastapi_sa_orm_filter.exceptions import SAFilterOrmException
 from fastapi_sa_orm_filter.operators import Operators as ops
 from fastapi_sa_orm_filter.operators import Sequence
 
 
-class _OrderByQueryParser:
+class OrderByQueryParser:
     """
     Class parse order by part of request query string.
     """
-    def __init__(self, model: Type[DeclarativeBase]) -> None:
+    def __init__(self, model: type[DeclarativeBase]) -> None:
         self._model = model
 
-    def get_order_by_query(self, order_by_query_str: str) -> List[UnaryExpression]:
+    def get_order_by_query(self, order_by_query_str: str) -> list[UnaryExpression]:
         order_by_fields = self._validate_order_by_fields(order_by_query_str)
         order_by_query = []
         for field in order_by_fields:
@@ -47,23 +44,23 @@ class _OrderByQueryParser:
         return order_by_fields
 
 
-class _FilterQueryParser:
+class FilterQueryParser:
     """
     Class parse filter part of request query string.
     """
 
-    def __init__(self, query: str, model: Type[DeclarativeBase], allowed_filters: dict[str, list[ops]]) -> None:
+    def __init__(
+            self, query: str,
+            allowed_filters: dict[str, list[ops]]
+    ) -> None:
         self._query = query
-        self._model = model
-        self._relationships = inspect(model).relationships.items()
         self._allowed_filters = allowed_filters
 
-    def get_parsed_query(self) -> list[list[Any]]:
+    def get_parsed_query(self) -> list[list[ParsedFilter]]:
         """
         :return:
             [
-                [[column, operator, value], [column, operator, value]],
-                [[column, operator, value]]
+                [ParsedFilter, ParsedFilter, ParsedFilter]
             ]
         """
         and_blocks = self._parse_by_conjunctions()
@@ -71,9 +68,9 @@ class _FilterQueryParser:
         for and_block in and_blocks:
             parsed_and_blocks = []
             for expression in and_block:
-                table, column, operator, value = self._parse_expression(expression)
-                self._validate_query_params(column.name, operator)
-                parsed_and_blocks.append([table, column, operator, value])
+                parsed_filter = self._parse_expression(expression)
+                self._validate_query_params(parsed_filter.field_name, parsed_filter.operator)
+                parsed_and_blocks.append(parsed_filter)
             parsed_query.append(parsed_and_blocks)
         return parsed_query
 
@@ -92,13 +89,12 @@ class _FilterQueryParser:
 
     def _parse_expression(
         self, expression: str
-    ) -> Union[Tuple[str, InstrumentedAttribute, str, str], HTTPException]:
-        model = self._model
-        table = self._model.__tablename__
+    ) -> ParsedFilter:
+        relation = None
         try:
             field_name, condition = expression.split("__")
             if "." in field_name:
-                model, table, field_name = self._get_relation_model(field_name)
+                relation, field_name = self._get_relation_model(field_name)
             operator, value = condition.split("=")
         except ValueError:
             raise SAFilterOrmException(
@@ -108,23 +104,14 @@ class _FilterQueryParser:
                 "or '{relation}.{field_name}__{condition}={value}{conjunction}'",
             )
 
-        column = getattr(model, field_name, None)
+        return ParsedFilter(field_name=field_name, operator=operator, value=value, relation=relation)
 
-        if not column:
-            raise SAFilterOrmException(f"DB model {model.__name__} doesn't have field '{field_name}'")
-        return table, column, operator, value
-
-    def _get_relation_model(self, field_name: str) -> tuple[DeclarativeBase, str, str]:
-        relation, field_name = field_name.split(".")
-        for relationship in self._relationships:
-            if relationship[0] == relation:
-                model = relationship[1].mapper.class_
-                return model, model.__tablename__, field_name
-        raise SAFilterOrmException(f"Can not find relation {relation} in {self._model.__name__} model")
+    def _get_relation_model(self, field_name: str) -> list[str]:
+        return field_name.split(".")
 
     def _validate_query_params(
         self, field_name: str, operator: str
-    ) -> Optional[HTTPException]:
+    ) -> None:
         """
         Check expression on valid and allowed field_name and operator
         """
