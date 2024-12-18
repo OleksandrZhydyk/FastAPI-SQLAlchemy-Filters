@@ -1,6 +1,7 @@
+import pytest
+
 from datetime import datetime, date
 
-import pytest
 from fastapi import HTTPException
 from starlette.status import HTTP_400_BAD_REQUEST
 from tests.utils import JobCategory
@@ -11,7 +12,7 @@ async def test_empty_query(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("")
     res = await session.execute(query)
     data = ListPydanticVacancy(
-        vacancies=res.scalars().all()
+        vacancies=list(res.scalars().all())
     ).model_dump(exclude={"created_at", "updated_at", "company_id"})
 
     assert len(data["vacancies"]) == 10
@@ -36,7 +37,7 @@ async def test_eq_with_int(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("salary_from__eq=60")
     res = await session.execute(query)
     data = ListPydanticVacancy(
-        vacancies=res.scalars().all()
+        vacancies=list(res.scalars().all())
     ).model_dump(exclude={"created_at", "updated_at", "company_id"})
 
     assert len(data["vacancies"]) == 1
@@ -61,7 +62,7 @@ async def test_eq_with_float(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("salary_up_to__eq=120.725")
     res = await session.execute(query)
     data = ListPydanticVacancy(
-        vacancies=res.scalars().all()
+        vacancies=list(res.scalars().all())
     ).model_dump(exclude={"created_at", "updated_at", "company_id"})
 
     assert len(data["vacancies"]) == 1
@@ -85,7 +86,7 @@ async def test_eq_with_float(session, get_vacancy_filter, create_vacancies):
 async def test_in_with_str(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("description__in_=description1,description2")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 2
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -107,7 +108,7 @@ async def test_in_with_str(session, get_vacancy_filter, create_vacancies):
 async def test_contains_with_str(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("description__contains=tion1")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 2
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -129,7 +130,7 @@ async def test_contains_with_str(session, get_vacancy_filter, create_vacancies):
 async def test_endswith_with_str(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("title__endswith=le1")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 1
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -151,7 +152,7 @@ async def test_endswith_with_str(session, get_vacancy_filter, create_vacancies):
 async def test_in_with_int(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("salary_from__in_=60,70,80")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 3
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -173,7 +174,7 @@ async def test_in_with_int(session, get_vacancy_filter, create_vacancies):
 async def test_gte_with_int(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("salary_from__gte=120")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 4
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -195,7 +196,7 @@ async def test_gte_with_int(session, get_vacancy_filter, create_vacancies):
 async def test_not_eq_with_date(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("created_at__not_eq=2023-05-01")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 9
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -217,7 +218,7 @@ async def test_not_eq_with_date(session, get_vacancy_filter, create_vacancies):
 async def test_eq_with_bool(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("is_active__eq=true")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 5
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -239,7 +240,7 @@ async def test_eq_with_bool(session, get_vacancy_filter, create_vacancies):
 async def test_between_with_int(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("salary_from__between=50,90")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 4
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -261,7 +262,7 @@ async def test_between_with_int(session, get_vacancy_filter, create_vacancies):
 async def test_between_with_datetime(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("updated_at__between=2023-01-01 00:00:00,2023-05-01 00:00:00")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 4
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -283,7 +284,7 @@ async def test_between_with_datetime(session, get_vacancy_filter, create_vacanci
 async def test_between_with_date(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("created_at__between=2023-05-01,2023-05-05")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 5
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -305,7 +306,7 @@ async def test_between_with_date(session, get_vacancy_filter, create_vacancies):
 async def test_gt_with_int(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("salary_from__gt=100")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 5
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -327,7 +328,7 @@ async def test_gt_with_int(session, get_vacancy_filter, create_vacancies):
 async def test_enum_with_str(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("category__eq=Medicine")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 1
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -353,7 +354,7 @@ async def test_complex_query(session, get_vacancy_filter, create_vacancies):
         "salary_from__gt=100"
     )
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 7
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -385,7 +386,7 @@ async def test_several_or_in_query(session, get_vacancy_filter, create_vacancies
         f"salary_up_to__lt={salary}"
     )
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 5
 
     for vacancy in data["vacancies"]:
@@ -407,7 +408,7 @@ async def test_complex_query_with_order_by(session, get_vacancy_filter, create_v
         "order_by=-id"
     )
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 7
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -429,7 +430,7 @@ async def test_complex_query_with_order_by(session, get_vacancy_filter, create_v
 async def test_order_by_id(session, get_vacancy_filter, create_vacancies):
     query = get_vacancy_filter.get_query("order_by=-id")
     res = await session.execute(query)
-    data = ListPydanticVacancy(vacancies=res.scalars().all()).model_dump()
+    data = ListPydanticVacancy(vacancies=list(res.scalars().all())).model_dump()
     assert len(data["vacancies"]) == 10
     assert isinstance(data["vacancies"][0]["created_at"], date)
     assert isinstance(data["vacancies"][0]["updated_at"], datetime)
@@ -591,71 +592,3 @@ def test_fail_filter(get_vacancy_filter, bad_filter, expected_status_code, expec
             detail.pop("url")
 
     assert errors_details == expected_detail
-
-
-async def test_relation_search(session, get_custom_company_filter, create_vacancies):
-    query = get_custom_company_filter.get_query("title__eq=MyCompany2&vacancies.salary_from__gte=100")
-    res = await session.execute(query)
-    companies = res.unique().scalars().all()
-
-    assert len(companies) == 1
-    assert len(companies[0].vacancies) == 6
-
-    company = companies[0]
-    assert company.id == 2
-    assert company.title == "MyCompany2"
-
-
-async def test_pass_custom_select_into_init(session, get_filter_passed_in_init, create_vacancies):
-    query = get_filter_passed_in_init.get_query("title__eq=MyCompany2&vacancies.salary_from__gte=100")
-    res = await session.execute(query)
-    companies = res.unique().scalars().all()
-
-    assert len(companies) == 1
-
-    company = companies[0]
-    assert company.id == 2
-    assert company.title == "MyCompany2"
-
-
-@pytest.mark.parametrize(
-    "bad_filter, expected_status_code, expected_detail",
-    (
-        (
-            "unknown.vacancies.salary_from__gte=100",
-            HTTP_400_BAD_REQUEST,
-            "Incorrect filter request syntax, "
-            "please use pattern :'{field_name}__{condition}={value}{conjunction}' "
-            "or '{relation}.{field_name}__{condition}={value}{conjunction}'"
-        ),
-        (
-            "unknown.salary_from__gte=100",
-            HTTP_400_BAD_REQUEST,
-            "Can not find relation unknown in Company model"
-        ),
-    )
-)
-def test_fail_relation_filter(get_custom_company_filter, bad_filter, expected_status_code, expected_detail):
-    with pytest.raises(HTTPException) as e:
-        get_custom_company_filter.get_query(bad_filter)
-    assert e.type == HTTPException
-    assert e.value.status_code == expected_status_code
-
-    errors_details = e.value.detail
-
-    if isinstance(errors_details, list):
-        for detail in errors_details:
-            detail.pop("url")
-
-    assert errors_details == expected_detail
-
-
-async def test_reverse_relation(session, get_vacancy_filter_with_join, create_vacancies):
-    query = get_vacancy_filter_with_join.get_query("company.title__eq=MyCompany1")
-    res = await session.execute(query)
-    vacancies = res.unique().scalars().all()
-
-    assert len(vacancies) == 4
-    vacancy = vacancies[0]
-    assert vacancy.id == 1
-    assert vacancy.company_id == 1

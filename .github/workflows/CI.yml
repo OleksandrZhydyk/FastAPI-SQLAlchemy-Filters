@@ -1,4 +1,4 @@
-name: ci_filter
+name: CI
 
 on:
   - push
