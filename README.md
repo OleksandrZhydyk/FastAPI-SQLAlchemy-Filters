@@ -1,5 +1,5 @@
 ## FastAPI SQLAlchemy Filter 
-![ci_badge](https://github.com/OleksandrZhydyk/FastAPI-SQLAlchemy-Filters/actions/workflows/ci_filter.yml/badge.svg)
+![ci_badge](https://github.com/OleksandrZhydyk/FastAPI-SQLAlchemy-Filters/actions/workflows/CI.yml/badge.svg)
 [![Downloads](https://static.pepy.tech/badge/fastapi_sa_orm_filter)](https://pepy.tech/project/fastapi_sa_orm_filter)
 [![PyPI version](https://img.shields.io/pypi/v/fastapi-sa-orm-filter.svg)](https://pypi.org/project/fastapi-sa-orm-filter/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

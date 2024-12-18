@@ -4,7 +4,7 @@ from sqlalchemy.sql.elements import UnaryExpression
 from fastapi_sa_orm_filter.dto import ParsedFilter
 from fastapi_sa_orm_filter.exceptions import SAFilterOrmException
 from fastapi_sa_orm_filter.operators import Operators as ops
-from fastapi_sa_orm_filter.operators import Sequence
+from fastapi_sa_orm_filter.operators import OrderSequence
 
 
 class OrderByQueryParser:
@@ -20,10 +20,10 @@ class OrderByQueryParser:
         for field in order_by_fields:
             if '-' in field:
                 column = getattr(self._model, field.strip('-'))
-                order_by_query.append(getattr(column, Sequence.desc)())
+                order_by_query.append(getattr(column, OrderSequence.desc)())
             else:
                 column = getattr(self._model, field.strip('+'))
-                order_by_query.append(getattr(column, Sequence.asc)())
+                order_by_query.append(getattr(column, OrderSequence.asc)())
         return order_by_query
 
     def _validate_order_by_fields(self, order_by_query_str: str) -> list[str]:

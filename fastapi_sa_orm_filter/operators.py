@@ -21,6 +21,6 @@ class Operators(str, Enum):
     not_between = "not_between"
 
 
-class Sequence(str, Enum):
+class OrderSequence(str, Enum):
     desc = "desc"
     asc = "asc"
