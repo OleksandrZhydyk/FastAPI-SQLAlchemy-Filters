@@ -20,14 +20,15 @@ class SAFilterExpressionBuilder:
         self._model_serializers = self.create_pydantic_serializers()
 
     def get_expressions(self, parsed_filters) -> list[BinaryExpression]:
-        model = self.model
-        table = self.model.__tablename__
 
         or_expr = []
 
         for and_parsed_filter in parsed_filters:
             and_expr = []
             for and_filter in and_parsed_filter:
+                model = self.model
+                table = self.model.__tablename__
+
                 if and_filter.has_relation:
                     model = self.get_relation_model(and_filter.relation)
                     table = model.__tablename__

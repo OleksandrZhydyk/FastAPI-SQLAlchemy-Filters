@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-sqlalchemy-filters"
-version = "0.2.3"
+version = "0.2.4"
 description = ""
 authors = ["Alexandr Zhydyk <zhydykalex@ukr.net>"]
 readme = "README.md"
