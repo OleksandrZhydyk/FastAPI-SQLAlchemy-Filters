@@ -8,10 +8,12 @@ from sqlalchemy.sql.expression import or_
 from starlette import status
 from sqlalchemy.sql import Select
 
+from fastapi_sa_orm_filter.dto import ParsedFilter
 from fastapi_sa_orm_filter.exceptions import SAFilterOrmException
+from fastapi_sa_orm_filter.interfaces import QueryParser
 from fastapi_sa_orm_filter.operators import Operators as ops
-from fastapi_sa_orm_filter.parsers import FilterQueryParser, OrderByQueryParser
-from fastapi_sa_orm_filter.sa_expression_builder import SAFilterExpressionBuilder
+from fastapi_sa_orm_filter.parsers import StringQueryParser
+from fastapi_sa_orm_filter.sa_expression_builder import SAFilterExpressionBuilder, SAOrderByExpressionBuilder
 
 
 class FilterCore:
@@ -36,10 +38,11 @@ class FilterCore:
                     'field_name': [startswith, eq, in_],
                     'field_name': [contains, like]
                 }
+        :param select_query_part: custom select query part (select(model).join(model1))
         """
         self.model = model
         self._allowed_filters = allowed_filters
-        self.select_query_part = select_query_part
+        self.select_sql_query = select_query_part
 
     def get_query(self, custom_filter: str) -> Select[Any]:
         """
@@ -50,7 +53,6 @@ class FilterCore:
             created_at__between=2023-05-01,2023-05-05|
             category__eq=Medicine&
             order_by=-id
-        :param select_query_part: custom select query part (select(model).join(model1))
 
         :return:
             select(model)
@@ -63,56 +65,49 @@ class FilterCore:
                         model.category == 'Medicine'
                     ).order_by(model.id.desc())
         """
-        split_query = self._split_by_order_by(custom_filter)
         try:
-            complete_query = self._get_complete_query(*split_query)
+            query_parser = self._get_query_parser(custom_filter)
+            filter_query, order_by_query = query_parser.get_parsed_filter()
+            complete_query = self._get_complete_query(filter_query, order_by_query)
         except SAFilterOrmException as e:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.args[0])
         return complete_query
 
-    def _get_complete_query(self, filter_query_str: str, order_by_query_str: str | None = None) -> Select[Any]:
-        select_query_part = self.get_select_query_part()
-        filter_query_part = self._get_filter_query_part(filter_query_str)
-        complete_query = select_query_part.filter(*filter_query_part)
-        group_query_part = self.get_group_by_query_part()
-        if group_query_part:
-            complete_query = complete_query.group_by(*group_query_part)
-        if order_by_query_str is not None:
-            order_by_query = self.get_order_by_query_part(order_by_query_str)
-            complete_query = complete_query.order_by(*order_by_query)
-        return complete_query
+    def _get_complete_query(
+            self, filter_query: list[list[ParsedFilter]] | list, order_by_query: list[str] | list
+    ) -> Select[Any]:
+        select_sa_query = self.get_select_query_part()
+        filter_sa_query = self._get_filter_sa_query(filter_query)
+        group_by_sa_query = self._get_group_by_sa_query()
+        order_by_sa_query = self._get_order_by_sa_query(order_by_query)
+        return select_sa_query.filter(*filter_sa_query).group_by(*group_by_sa_query).order_by(*order_by_sa_query)
 
     def get_select_query_part(self) -> Select[Any]:
-        if self.select_query_part is not None:
-            return self.select_query_part
+        if self.select_sql_query is not None:
+            return self.select_sql_query
         return select(self.model)
 
-    def _get_filter_query_part(self, filter_query_str: str) -> list[Any]:
-        conditions = self._get_filter_query(filter_query_str)
-        if len(conditions) == 0:
-            return conditions
+    def _get_filter_sa_query(self, filter_query: list[list[ParsedFilter]] | list) -> list[BinaryExpression] | list:
+        if len(filter_query) == 0:
+            return []
+        sa_builder = SAFilterExpressionBuilder(self.model)
+        conditions = sa_builder.get_expressions(filter_query)
         return [or_(*conditions)]
+
+    def _get_order_by_sa_query(self, order_by_query: list[str] | list) -> list[UnaryExpression]:
+        if len(order_by_query) == 0:
+            return []
+        sa_builder = SAOrderByExpressionBuilder(self.model)
+        return sa_builder.get_order_by_query(order_by_query)
+
+    def _get_group_by_sa_query(self) -> list[BinaryExpression] | list:
+        group_query_part = self.get_group_by_query_part()
+        if len(group_query_part) == 0:
+            return []
+        return group_query_part
 
     def get_group_by_query_part(self) -> list:
         return []
 
-    def get_order_by_query_part(self, order_by_query_str: str) -> list[UnaryExpression]:
-        order_by_parser = OrderByQueryParser(self.model)
-        return order_by_parser.get_order_by_query(order_by_query_str)
-
-    def _get_filter_query(self, custom_filter: str) -> list[BinaryExpression]:
-        filter_conditions = []
-        if custom_filter == "":
-            return filter_conditions
-
-        parser = FilterQueryParser(custom_filter, self._allowed_filters)
-        parsed_filters = parser.get_parsed_query()
-        sa_builder = SAFilterExpressionBuilder(self.model)
-        return sa_builder.get_expressions(parsed_filters)
-
-    @staticmethod
-    def _split_by_order_by(query) -> list:
-        split_query = [query_part.strip("&") for query_part in query.split("order_by=")]
-        if len(split_query) > 2:
-            raise SAFilterOrmException("Use only one order_by directive")
-        return split_query
+    def _get_query_parser(self, custom_filter: str) -> QueryParser:
+        return StringQueryParser(custom_filter, self._allowed_filters)
